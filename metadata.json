@@ -1,0 +1,6 @@
+{
+  "name": "Karan Buds Studio",
+  "description": "Bluetooth audio companion for earbuds with Battery UI, Noise Control, Equalizer, Permission Helper, and animated glass settings.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
