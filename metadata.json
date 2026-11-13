@@ -1,6 +1,6 @@
 {
-  "name": "CK",
-  "description": "CK – Premium Black & White + iOS Liquid Glass Bluetooth earbuds companion with automatic connection detection, brand logos, battery dashboard, firmware verification, 3D animations, and background monitoring.",
+  "name": "Simple SMS Calculator",
+  "description": "Simple SMS Calculator – 100% offline business calculator, encrypted local Hisab-Kitab udhaar/jama ledger, SIM/native SMS payment receipts, GST/EMI/unit converters, PDF/CSV/Excel exports, local backup/restore, and permission manager for Hardik Kumar.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

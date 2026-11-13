@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/ic_ck_foreground"
+        android:drawable="@drawable/ic_sms_calc_fg_1794565603036"
         android:gravity="center" />
 </layer-list>

@@ -1,113 +1,69 @@
 package com.example.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.shape.RoundedCornerShape
+import android.app.Activity
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Shapes
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import com.example.model.AnimationStyle
-import com.example.model.ThemePreference
-import com.example.model.UiCustomizationConfig
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import com.example.model.AppThemeId
 
-data class LiquidGlassStyle(
-    val isDark: Boolean = false,
-    val glassAlpha: Float = 0.80f,
-    val blurRadius: Dp = 20.dp,
-    val reflectionIntensity: Float = 0.72f,
-    val cornerRadius: Dp = 26.dp,
-    val animationStyle: AnimationStyle = AnimationStyle.LIQUID_SPRING,
-    val animationSpeedMultiplier: Float = 1.0f,
-    val enable3dAutoOrbit: Boolean = true,
-)
+val LocalGlassPalette = staticCompositionLocalOf {
+    AppThemes.glassPaletteFor(AppThemeId.OBSIDIAN_EMERALD)
+}
 
-val LocalLiquidGlassStyle = staticCompositionLocalOf { LiquidGlassStyle() }
+val LocalAppThemeId = staticCompositionLocalOf {
+    AppThemeId.OBSIDIAN_EMERALD
+}
 
-private val WhiteLuxuryColorScheme = lightColorScheme(
-    primary = LuxuryGraphiteInk,
-    onPrimary = PureWhite,
-    primaryContainer = FrostedSilverSurface,
-    onPrimaryContainer = LuxuryGraphiteInk,
-    secondary = LuxurySlateMuted,
-    onSecondary = PureWhite,
-    secondaryContainer = SoftSilverGradientEnd,
-    onSecondaryContainer = LuxuryGraphiteInk,
-    tertiary = StatusEmerald,
-    background = PureWhite,
-    onBackground = LuxuryGraphiteInk,
-    surface = PureWhite,
-    onSurface = LuxuryGraphiteInk,
-    surfaceVariant = FrostedSilverSurface,
-    onSurfaceVariant = LuxurySlateMuted,
-    outline = SilverEdgeRim,
-    outlineVariant = SilverDivider,
-    error = StatusCoral,
-)
-
-private val ObsidianColorScheme = darkColorScheme(
-    primary = PureWhite,
-    onPrimary = ObsidianBlack,
-    primaryContainer = ObsidianSurfaceVariant,
-    onPrimaryContainer = PureWhite,
-    secondary = DarkMutedInk,
-    onSecondary = ObsidianBlack,
-    secondaryContainer = ObsidianSurfaceVariant,
-    onSecondaryContainer = DarkInk,
-    tertiary = StatusEmerald,
-    background = ObsidianBlack,
-    onBackground = DarkInk,
-    surface = ObsidianSurface,
-    onSurface = DarkInk,
-    surfaceVariant = ObsidianSurfaceVariant,
-    onSurfaceVariant = DarkMutedInk,
-    outline = DarkOutline,
-    outlineVariant = DarkOutlineSubtle,
-    error = StatusCoral,
-)
-
-val StudioShapes = Shapes(
-    extraSmall = RoundedCornerShape(10.dp),
-    small = RoundedCornerShape(14.dp),
-    medium = RoundedCornerShape(22.dp),
-    large = RoundedCornerShape(26.dp),
-    extraLarge = RoundedCornerShape(34.dp),
-)
+val LocalGlassIntensity = staticCompositionLocalOf { 0.85f }
 
 @Composable
-fun CkMonochromeTheme(
-    customization: UiCustomizationConfig = UiCustomizationConfig(),
-    content: @Composable () -> Unit,
+fun SimpleSmsCalculatorTheme(
+    themeId: AppThemeId = AppThemeId.OBSIDIAN_EMERALD,
+    glassIntensity: Float = 0.85f,
+    content: @Composable () -> Unit
 ) {
-    val systemDark = isSystemInDarkTheme()
-    val useDark = when (customization.themePreference) {
-        ThemePreference.WHITE -> false
-        ThemePreference.BLACK -> true
-        ThemePreference.AUTO -> systemDark
-    }
+    val targetScheme = AppThemes.colorSchemeFor(themeId)
+    val glassPalette = AppThemes.glassPaletteFor(themeId)
 
-    val colorScheme = if (useDark) ObsidianColorScheme else WhiteLuxuryColorScheme
-    val glassStyle = LiquidGlassStyle(
-        isDark = useDark,
-        glassAlpha = customization.glassTransparency,
-        blurRadius = customization.glassBlurDp.dp,
-        reflectionIntensity = customization.silverReflectionIntensity,
-        cornerRadius = customization.cardCornerRadiusDp.dp,
-        animationStyle = customization.animationStyle,
-        animationSpeedMultiplier = customization.animationSpeedMultiplier,
-        enable3dAutoOrbit = customization.enable3dAutoOrbit,
+    val primary by animateColorAsState(targetScheme.primary, tween(280), label = "primary")
+    val background by animateColorAsState(targetScheme.background, tween(280), label = "background")
+    val surface by animateColorAsState(targetScheme.surface, tween(280), label = "surface")
+
+    val animatedScheme = targetScheme.copy(
+        primary = primary,
+        background = background,
+        surface = surface
     )
 
-    CompositionLocalProvider(LocalLiquidGlassStyle provides glassStyle) {
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window
+            if (window != null) {
+                WindowCompat.getInsetsController(window, view).apply {
+                    isAppearanceLightStatusBars = !themeId.isDark
+                    isAppearanceLightNavigationBars = !themeId.isDark
+                }
+            }
+        }
+    }
+
+    CompositionLocalProvider(
+        LocalGlassPalette provides glassPalette,
+        LocalAppThemeId provides themeId,
+        LocalGlassIntensity provides glassIntensity
+    ) {
         MaterialTheme(
-            colorScheme = colorScheme,
+            colorScheme = animatedScheme,
             typography = Typography,
-            shapes = StudioShapes,
-            content = content,
+            content = content
         )
     }
 }
