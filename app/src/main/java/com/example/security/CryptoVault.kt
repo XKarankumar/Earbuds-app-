@@ -18,7 +18,7 @@ import javax.crypto.spec.SecretKeySpec
 object CryptoVault {
 
     private const val ANDROID_KEYSTORE = "AndroidKeyStore"
-    private const val KEY_ALIAS = "simple_sms_calc_vault_v1"
+    private const val KEY_ALIAS = "karan_finder_pro_vault_v1"
     private const val AES_GCM_TRANSFORMATION = "AES/GCM/NoPadding"
     private const val GCM_TAG_BITS = 128
     private const val GCM_IV_BYTES = 12
@@ -130,13 +130,13 @@ object CryptoVault {
         val saltB64 = Base64.encodeToString(salt, Base64.NO_WRAP)
         val ivB64 = Base64.encodeToString(iv, Base64.NO_WRAP)
         val ctB64 = Base64.encodeToString(ciphertext, Base64.NO_WRAP)
-        return "SSCBAK1|$saltB64|$ivB64|$ctB64"
+        return "KNFBAK1|$saltB64|$ivB64|$ctB64"
     }
 
     fun decryptPortableBackup(encryptedPackage: String, passphrase: String): Result<String> {
         return try {
             val parts = encryptedPackage.trim().split("|")
-            require(parts.size == 4 && parts[0] == "SSCBAK1") { "Invalid backup file format" }
+            require(parts.size == 4 && parts[0] == "KNFBAK1") { "Invalid backup file format" }
             val salt = Base64.decode(parts[1], Base64.NO_WRAP)
             val iv = Base64.decode(parts[2], Base64.NO_WRAP)
             val ciphertext = Base64.decode(parts[3], Base64.NO_WRAP)

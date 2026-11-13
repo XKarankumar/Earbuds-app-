@@ -1,155 +1,144 @@
 package com.example.ui.viewmodel
 
+import android.app.Application
 import android.content.Context
+import android.graphics.Bitmap
+import android.net.Uri
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.LedgerRepository
-import com.example.export.ReportExporter
+import com.example.ai.FirebaseAiIntelligenceService
+import com.example.ai.OnDeviceOcrScanner
+import com.example.ai.PhoneValidatorEngine
+import com.example.data.SearchHistoryRepository
+import com.example.export.KaranPdfExporter
+import com.example.model.AppLanguage
 import com.example.model.AppThemeId
-import com.example.model.AuditAction
-import com.example.model.AuditLog
-import com.example.model.CalcHistoryEntry
-import com.example.model.CalculatorEvaluator
-import com.example.model.Customer
-import com.example.model.LedgerTransaction
-import com.example.model.LocalBackupSnapshot
-import com.example.model.SmsDispatchMethod
-import com.example.model.TransactionType
-import com.example.model.UserProfile
+import com.example.model.AsyncUiState
+import com.example.model.ChatMessage
+import com.example.model.DashboardCardId
+import com.example.model.HistoryRecordType
+import com.example.model.NumberLookupReport
+import com.example.model.PhotoAnalysisReport
+import com.example.model.SearchHistoryRecord
+import com.example.model.SpamAnalysisReport
 import com.example.security.AppPreferencesRepository
 import com.example.security.LocalAppPreferences
+import com.example.security.RateLimitSnapshot
+import com.example.security.RateLimiter
+import com.google.firebase.ai.type.Content
+import com.google.firebase.ai.type.content
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.UUID
 
-sealed interface UiState<out T> {
-    data object Loading : UiState<Nothing>
-    data class Success<T>(val data: T) : UiState<T>
-    data class Error(val message: String) : UiState<Nothing>
-}
-
-data class CalculatorUiState(
-    val expression: String = "0",
-    val previewResult: String = "0",
-    val memoryValue: Double = 0.0,
-    val hasError: Boolean = false,
-    val justEvaluated: Boolean = false
-)
+private const val TAG = "MainViewModel"
 
 class MainViewModel(
-    private val repository: LedgerRepository,
-    private val prefsRepo: AppPreferencesRepository
-) : ViewModel() {
+    application: Application,
+    private val historyRepo: SearchHistoryRepository,
+    private val prefsRepo: AppPreferencesRepository,
+    private val aiService: FirebaseAiIntelligenceService = FirebaseAiIntelligenceService(),
+    private val rateLimiter: RateLimiter = RateLimiter(maxRequestsPerMinute = 12)
+) : AndroidViewModel(application) {
 
-    private val _calcState = MutableStateFlow(CalculatorUiState())
-    val calcState: StateFlow<CalculatorUiState> = _calcState.asStateFlow()
+    val localPrefs: StateFlow<LocalAppPreferences> = prefsRepo.preferencesFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, LocalAppPreferences())
 
-    private val _selectedCustomerId = MutableStateFlow<String?>(null)
-    val selectedCustomerId: StateFlow<String?> = _selectedCustomerId.asStateFlow()
+    val searchHistory: StateFlow<List<SearchHistoryRecord>> = historyRepo.allRecords
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val rateLimitSnapshot: StateFlow<RateLimitSnapshot> = rateLimiter.snapshot
+
+    private val _showSplash = MutableStateFlow(true)
+    val showSplash: StateFlow<Boolean> = _showSplash.asStateFlow()
 
     private val _isLocked = MutableStateFlow<Boolean?>(null)
     val isLocked: StateFlow<Boolean?> = _isLocked.asStateFlow()
 
-    private val _localSnapshots = MutableStateFlow<List<LocalBackupSnapshot>>(emptyList())
-    val localSnapshots: StateFlow<List<LocalBackupSnapshot>> = _localSnapshots.asStateFlow()
+    private val _activeScreen = MutableStateFlow<DashboardCardId?>(null)
+    val activeScreen: StateFlow<DashboardCardId?> = _activeScreen.asStateFlow()
 
     private val _toastMessages = MutableSharedFlow<String>(extraBufferCapacity = 8)
-    val toastMessages = _toastMessages.asSharedFlow()
+    val toastMessages: SharedFlow<String> = _toastMessages.asSharedFlow()
 
-    val localPrefs: StateFlow<LocalAppPreferences> = prefsRepo.preferencesFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000L),
-            initialValue = LocalAppPreferences()
-        )
+    // Number & Business Lookup State
+    private val _lookupQuery = MutableStateFlow("")
+    val lookupQuery: StateFlow<String> = _lookupQuery.asStateFlow()
 
-    val userProfile: StateFlow<UserProfile?> = repository.observeUserProfile()
-        .catch { error ->
-            handleError("observeUserProfile", error)
-            emit(null)
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000L),
-            initialValue = null
-        )
+    private val _selectedRegion = MutableStateFlow("IN")
+    val selectedRegion: StateFlow<String> = _selectedRegion.asStateFlow()
 
-    val customersState: StateFlow<UiState<List<Customer>>> = repository.observeCustomers()
-        .map<List<Customer>, UiState<List<Customer>>> { UiState.Success(it) }
-        .catch { error ->
-            val msg = handleError("observeCustomers", error)
-            emit(UiState.Error(msg))
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000L),
-            initialValue = UiState.Loading
-        )
+    private val _businessHint = MutableStateFlow("")
+    val businessHint: StateFlow<String> = _businessHint.asStateFlow()
 
-    val transactionsState: StateFlow<UiState<List<LedgerTransaction>>> =
-        repository.observeTransactions()
-            .map<List<LedgerTransaction>, UiState<List<LedgerTransaction>>> { UiState.Success(it) }
-            .catch { error ->
-                val msg = handleError("observeTransactions", error)
-                emit(UiState.Error(msg))
-            }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000L),
-                initialValue = UiState.Loading
+    private val _isBusinessLookupMode = MutableStateFlow(false)
+    val isBusinessLookupMode: StateFlow<Boolean> = _isBusinessLookupMode.asStateFlow()
+
+    private val _lookupState = MutableStateFlow<AsyncUiState<NumberLookupReport>>(AsyncUiState.Idle)
+    val lookupState: StateFlow<AsyncUiState<NumberLookupReport>> = _lookupState.asStateFlow()
+
+    // Photo Scanner State
+    private val _selectedPhotoUri = MutableStateFlow<Uri?>(null)
+    val selectedPhotoUri: StateFlow<Uri?> = _selectedPhotoUri.asStateFlow()
+
+    private val _photoState = MutableStateFlow<AsyncUiState<PhotoAnalysisReport>>(AsyncUiState.Idle)
+    val photoState: StateFlow<AsyncUiState<PhotoAnalysisReport>> = _photoState.asStateFlow()
+
+    private var cachedScaledBitmap: Bitmap? = null
+    private var cachedOcrText: String = ""
+    private var cachedOcrPhones: List<String> = emptyList()
+
+    // Spam Detector State
+    private val _spamInput = MutableStateFlow("")
+    val spamInput: StateFlow<String> = _spamInput.asStateFlow()
+
+    private val _spamState = MutableStateFlow<AsyncUiState<SpamAnalysisReport>>(AsyncUiState.Idle)
+    val spamState: StateFlow<AsyncUiState<SpamAnalysisReport>> = _spamState.asStateFlow()
+
+    // AI Assistant Chat State
+    private val _chatMessages = MutableStateFlow(
+        listOf(
+            ChatMessage(
+                id = "welcome",
+                isUser = false,
+                text = "नमस्ते! मैं Karan AI Assistant हूँ। आप मुझसे किसी फ़ोन नंबर की सुरक्षा जाँच, संदिग्ध SMS/लिंक की पहचान, या Security Report (Hindi / English) बनाने के लिए पूछ सकते हैं।\n\nHello! Ask me to explain any lookup result, inspect a suspicious message, or generate a bilingual security report.",
+                confidenceTag = "Ready",
+                sourceTag = "Firebase AI Logic • Gemini 3.8 Flash"
             )
+        )
+    )
+    val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages.asStateFlow()
 
-    val auditLogsState: StateFlow<UiState<List<AuditLog>>> =
-        repository.observeAuditLogs()
-            .map<List<AuditLog>, UiState<List<AuditLog>>> { UiState.Success(it) }
-            .catch { error ->
-                val msg = handleError("observeAuditLogs", error)
-                emit(UiState.Error(msg))
-            }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000L),
-                initialValue = UiState.Loading
-            )
+    private val _isChatStreaming = MutableStateFlow(false)
+    val isChatStreaming: StateFlow<Boolean> = _isChatStreaming.asStateFlow()
 
-    val calcHistory: StateFlow<List<CalcHistoryEntry>> =
-        repository.observeCalcHistory()
-            .catch { error ->
-                handleError("observeCalcHistory", error)
-                emit(emptyList())
-            }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000L),
-                initialValue = emptyList()
-            )
+    private val _attachedContextSummary = MutableStateFlow<String?>(null)
+    val attachedContextSummary: StateFlow<String?> = _attachedContextSummary.asStateFlow()
 
     init {
         viewModelScope.launch {
-            repository.ensureOwnerProfile()
+            val prefs = prefsRepo.preferencesFlow.first()
+            _isLocked.value = prefs.pinLockEnabled
         }
         viewModelScope.launch {
-            prefsRepo.preferencesFlow.collect { prefs ->
-                if (_isLocked.value == null) {
-                    _isLocked.value = prefs.pinLockEnabled
-                }
-            }
+            delay(1100L)
+            _showSplash.value = false
         }
+    }
+
+    fun dismissSplash() {
+        _showSplash.value = false
     }
 
     fun unlockApp() {
@@ -159,351 +148,405 @@ class MainViewModel(
     fun lockAppNow() {
         if (localPrefs.value.pinLockEnabled) {
             _isLocked.value = true
+        } else {
+            emitToast("Set a 4-digit PIN in Security Center to enable vault lock.")
         }
     }
 
-    fun emitMessage(message: String) {
-        _toastMessages.tryEmit(message)
-    }
-
-    // --- Calculator Actions ---
-    fun onCalcKey(key: String) {
-        val current = _calcState.value
-        when (key) {
-            "AC" -> {
-                _calcState.value = current.copy(
-                    expression = "0",
-                    previewResult = "0",
-                    hasError = false,
-                    justEvaluated = false
-                )
+    fun navigateTo(card: DashboardCardId?) {
+        when (card) {
+            DashboardCardId.BUSINESS_LOOKUP -> {
+                _isBusinessLookupMode.value = true
+                _activeScreen.value = DashboardCardId.NUMBER_LOOKUP
             }
-            "DEL" -> {
-                val nextExpr = if (current.justEvaluated || current.expression.length <= 1) {
-                    "0"
-                } else {
-                    current.expression.dropLast(1)
-                }
-                updateExprAndPreview(nextExpr, justEvaluated = false)
+            DashboardCardId.NUMBER_LOOKUP -> {
+                _isBusinessLookupMode.value = false
+                _activeScreen.value = DashboardCardId.NUMBER_LOOKUP
             }
-            "=" -> {
-                val res = CalculatorEvaluator.evaluate(current.expression)
-                if (res.isSuccess) {
-                    val value = res.getOrThrow()
-                    val expr = current.expression
-                    _calcState.value = current.copy(
-                        expression = value,
-                        previewResult = value,
-                        hasError = false,
-                        justEvaluated = true
-                    )
-                    if (expr != value) {
-                        viewModelScope.launch {
-                            repository.saveCalcHistory(expr, value)
-                        }
-                    }
-                } else {
-                    _calcState.value = current.copy(hasError = true, previewResult = "Error")
-                }
-            }
-            "±" -> {
-                val expr = current.expression
-                val next = if (expr.startsWith("-")) expr.drop(1) else if (expr == "0") "0" else "-$expr"
-                updateExprAndPreview(next, justEvaluated = false)
-            }
-            "x²" -> {
-                val res = CalculatorEvaluator.evaluate(current.expression)
-                if (res.isSuccess) {
-                    val v = res.getOrThrow().toDoubleOrNull() ?: 0.0
-                    val sq = CalculatorEvaluator.formatNumber(v * v)
-                    updateExprAndPreview(sq, justEvaluated = true)
-                }
-            }
-            "MC" -> {
-                _calcState.value = current.copy(memoryValue = 0.0)
-                emitMessage("Calculator memory cleared")
-            }
-            "MR" -> {
-                val memStr = CalculatorEvaluator.formatNumber(current.memoryValue)
-                val next = if (current.expression == "0" || current.justEvaluated) memStr else current.expression + memStr
-                updateExprAndPreview(next, justEvaluated = false)
-            }
-            "M+" -> {
-                val v = current.previewResult.toDoubleOrNull() ?: 0.0
-                _calcState.value = current.copy(memoryValue = current.memoryValue + v)
-                emitMessage("Added $v to memory")
-            }
-            "M-" -> {
-                val v = current.previewResult.toDoubleOrNull() ?: 0.0
-                _calcState.value = current.copy(memoryValue = current.memoryValue - v)
-                emitMessage("Subtracted $v from memory")
-            }
-            else -> {
-                val isOperator = key in setOf("+", "−", "×", "÷", "%")
-                val base = when {
-                    current.justEvaluated && !isOperator -> ""
-                    current.expression == "0" && !isOperator && key != "." -> ""
-                    else -> current.expression
-                }
-                val nextExpr = base + key
-                updateExprAndPreview(nextExpr, justEvaluated = false)
-            }
+            else -> _activeScreen.value = card
         }
     }
 
-    fun loadValueIntoCalculator(value: String) {
-        val sanitized = value.trim().ifBlank { "0" }
-        updateExprAndPreview(sanitized, justEvaluated = true)
+    fun navigateBackHome() {
+        _activeScreen.value = null
     }
 
-    fun deleteCalcHistoryEntry(entryId: String) {
-        viewModelScope.launch {
-            repository.deleteCalcHistory(entryId)
+    fun toggleQuickTheme() {
+        val current = localPrefs.value.themeId
+        val next = if (current == AppThemeId.WHITE_GLASS) {
+            AppThemeId.DARK_3D_GLASS
+        } else {
+            AppThemeId.WHITE_GLASS
         }
+        setTheme(next)
     }
 
-    private fun updateExprAndPreview(expr: String, justEvaluated: Boolean) {
-        val res = CalculatorEvaluator.evaluate(expr)
-        _calcState.value = _calcState.value.copy(
-            expression = expr,
-            previewResult = res.getOrElse { _calcState.value.previewResult },
-            hasError = false,
-            justEvaluated = justEvaluated
-        )
-    }
-
-    // --- Ledger & Customers ---
-    fun selectCustomer(customerId: String?) {
-        _selectedCustomerId.value = customerId
-    }
-
-    fun addCustomer(name: String, phone: String, notes: String, onCreated: (String) -> Unit = {}) {
-        viewModelScope.launch {
-            val res = repository.createCustomer(name, phone, notes)
-            res.onSuccess { id ->
-                _selectedCustomerId.value = id
-                emitMessage("Customer \"$name\" saved to offline vault")
-                onCreated(id)
-            }.onFailure { err ->
-                emitMessage(err.localizedMessage ?: "Failed to add customer")
-            }
-        }
-    }
-
-    fun updateCustomer(customerId: String, name: String, phone: String, notes: String) {
-        viewModelScope.launch {
-            val res = repository.updateCustomerDetails(customerId, name, phone, notes)
-            res.onSuccess {
-                emitMessage("Updated customer details")
-            }.onFailure { err ->
-                emitMessage(err.localizedMessage ?: "Failed to update customer")
-            }
-        }
-    }
-
-    fun addTransaction(
-        customer: Customer,
-        type: TransactionType,
-        amountRupees: Double,
-        note: String,
-        billRef: String,
-        smsSent: Boolean,
-        smsMethod: SmsDispatchMethod
-    ) {
-        val paise = kotlin.math.round(amountRupees * 100.0).toLong()
-        if (paise <= 0L) {
-            emitMessage("Please enter a valid positive amount")
-            return
-        }
-        viewModelScope.launch {
-            val res = repository.recordTransaction(
-                customer = customer,
-                type = type,
-                amountPaise = paise,
-                note = note,
-                billReference = billRef,
-                smsReceiptSent = smsSent,
-                smsMethod = smsMethod
-            )
-            res.onSuccess {
-                emitMessage("${type.label} saved (${LedgerRepository.formatCurrencyPaise(paise)})")
-            }.onFailure { err ->
-                emitMessage(err.localizedMessage ?: "Failed to save transaction")
-            }
-        }
-    }
-
-    fun logAudit(action: AuditAction, entityId: String, summary: String, details: String = "") {
-        viewModelScope.launch {
-            repository.logAuditEvent(action, entityId, summary, details)
-        }
-    }
-
-    // --- Settings, Theme, Security & Local Backup ---
     fun setTheme(themeId: AppThemeId) {
-        viewModelScope.launch {
-            prefsRepo.setTheme(themeId)
-            repository.updateOwnerProfileSettings(preferredTheme = themeId)
-        }
+        viewModelScope.launch { prefsRepo.setTheme(themeId) }
     }
 
     fun setGlassIntensity(value: Float) {
-        viewModelScope.launch {
-            prefsRepo.setGlassIntensity(value)
-        }
+        viewModelScope.launch { prefsRepo.setGlassIntensity(value) }
     }
 
-    fun updateBusinessProfile(businessName: String, phone: String) {
-        viewModelScope.launch {
-            val res = repository.updateOwnerProfileSettings(
-                businessName = businessName,
-                phone = phone
-            )
-            res.onSuccess {
-                emitMessage("Business profile saved offline")
-            }.onFailure { err ->
-                emitMessage(err.localizedMessage ?: "Failed to update profile")
-            }
-        }
+    fun setLanguage(language: AppLanguage) {
+        viewModelScope.launch { prefsRepo.setLanguage(language) }
     }
 
-    fun enablePinLock(pin: String) {
+    fun setSaveSearchHistory(enabled: Boolean) {
+        viewModelScope.launch { prefsRepo.setSaveSearchHistory(enabled) }
+    }
+
+    fun setPinCode(pin: String) {
         viewModelScope.launch {
             prefsRepo.setPinCode(pin)
-            repository.logAuditEvent(
-                action = AuditAction.SECURITY_CHANGE,
-                entityId = "pin_lock",
-                summary = "Enabled optional 4-digit encrypted PIN lock"
-            )
-            emitMessage("PIN lock enabled")
+            emitToast("Local PIN vault protection enabled.")
         }
     }
 
-    fun disablePinLock() {
+    fun disablePinCode() {
         viewModelScope.launch {
             prefsRepo.disablePinCode()
-            repository.logAuditEvent(
-                action = AuditAction.SECURITY_CHANGE,
-                entityId = "pin_lock",
-                summary = "Disabled optional PIN & biometric lock"
-            )
-            emitMessage("App lock disabled")
+            emitToast("Vault lock disabled — Guest Mode active.")
         }
     }
 
     fun setBiometricEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            prefsRepo.setBiometricEnabled(enabled)
-            repository.logAuditEvent(
-                action = AuditAction.SECURITY_CHANGE,
-                entityId = "biometric",
-                summary = if (enabled) "Enabled optional biometric unlock" else "Disabled biometric unlock"
-            )
-        }
-    }
-
-    fun setDirectSmsEnabled(enabled: Boolean) {
-        viewModelScope.launch { prefsRepo.setDirectSmsEnabled(enabled) }
-    }
-
-    fun setContactsEnabled(enabled: Boolean) {
-        viewModelScope.launch { prefsRepo.setContactsEnabled(enabled) }
+        viewModelScope.launch { prefsRepo.setBiometricEnabled(enabled) }
     }
 
     fun setCameraScanEnabled(enabled: Boolean) {
         viewModelScope.launch { prefsRepo.setCameraScanEnabled(enabled) }
     }
 
-    fun setRemindersEnabled(enabled: Boolean) {
-        viewModelScope.launch { prefsRepo.setRemindersEnabled(enabled) }
+    fun updateLookupQuery(value: String) {
+        _lookupQuery.value = value
     }
 
-    fun refreshLocalSnapshots(context: Context) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val dir = File(context.filesDir, "backups").apply { mkdirs() }
-            val files = dir.listFiles { f -> f.isFile && f.name.endsWith(".sscbak") }
-                ?.sortedByDescending { it.lastModified() }
-                .orEmpty()
-            _localSnapshots.value = files.map { f ->
-                LocalBackupSnapshot(
-                    fileName = f.name,
-                    filePath = f.absolutePath,
-                    sizeBytes = f.length(),
-                    modifiedEpochMs = f.lastModified()
+    fun updateSelectedRegion(regionCode: String) {
+        _selectedRegion.value = regionCode
+    }
+
+    fun updateBusinessHint(hint: String) {
+        _businessHint.value = hint
+    }
+
+    fun setBusinessMode(enabled: Boolean) {
+        _isBusinessLookupMode.value = enabled
+    }
+
+    fun lookupPhoneNumber(customNumber: String? = null, businessMode: Boolean = _isBusinessLookupMode.value) {
+        val query = (customNumber ?: _lookupQuery.value).trim()
+        if (query.isBlank()) {
+            _lookupState.value = AsyncUiState.Error("Please enter a phone number or official helpline code.")
+            return
+        }
+        _lookupQuery.value = query
+        _isBusinessLookupMode.value = businessMode
+
+        val validation = PhoneValidatorEngine.validate(query, _selectedRegion.value)
+        val acquired = rateLimiter.tryAcquire()
+        if (acquired.isFailure) {
+            _lookupState.value = AsyncUiState.Error(
+                acquired.exceptionOrNull()?.message ?: "Rate limit exceeded.",
+                isRateLimited = true
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _lookupState.value = AsyncUiState.Loading(
+                "Validating ${validation.internationalFormat} (${validation.countryName}) & running AI fraud check..."
+            )
+            try {
+                val report = aiService.analyzePhoneNumber(
+                    validation = validation,
+                    businessQueryHint = _businessHint.value.trim(),
+                    isBusinessMode = businessMode
+                )
+                _lookupState.value = AsyncUiState.Success(report)
+                _attachedContextSummary.value = buildNumberContextString(report)
+
+                if (localPrefs.value.saveSearchHistory) {
+                    historyRepo.saveRecord(
+                        recordType = if (businessMode) HistoryRecordType.BUSINESS else HistoryRecordType.NUMBER,
+                        title = report.validation.internationalFormat,
+                        subtitle = "${report.publicCallerOrBusinessName} • ${report.validation.countryName} (${report.validation.numberType})",
+                        riskLevel = report.riskLevel,
+                        riskScore = report.spamRiskScore,
+                        summaryText = "${report.summaryEn}\n\n${report.summaryHi}",
+                        sourceAttribution = report.sourceAttribution
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Lookup failed", e)
+                _lookupState.value = AsyncUiState.Error(
+                    e.localizedMessage ?: "Unable to complete AI phone verification."
                 )
             }
         }
     }
 
-    fun createLocalVaultSnapshot(
+    fun jumpToNumberLookup(phone: String) {
+        _lookupQuery.value = phone
+        _isBusinessLookupMode.value = false
+        _activeScreen.value = DashboardCardId.NUMBER_LOOKUP
+        lookupPhoneNumber(phone, businessMode = false)
+    }
+
+    fun scanPhotoUri(uri: Uri) {
+        _selectedPhotoUri.value = uri
+        viewModelScope.launch {
+            _photoState.value = AsyncUiState.Loading("Running on-device ML Kit OCR to extract text & phone numbers...")
+            try {
+                val ocr = OnDeviceOcrScanner.scanUri(
+                    context = getApplication(),
+                    uri = uri,
+                    defaultRegion = _selectedRegion.value
+                )
+                cachedScaledBitmap = ocr.scaledBitmap
+                cachedOcrText = ocr.rawText
+                cachedOcrPhones = ocr.extractedPhoneNumbers
+
+                val acquired = rateLimiter.tryAcquire()
+                if (acquired.isFailure) {
+                    _photoState.value = AsyncUiState.Error(
+                        acquired.exceptionOrNull()?.message ?: "Rate limit exceeded.",
+                        isRateLimited = true
+                    )
+                    return@launch
+                }
+
+                _photoState.value = AsyncUiState.Loading("Running HTTPS AI image & object analysis (no facial ID)...")
+                val report = aiService.analyzePhoto(
+                    bitmap = ocr.scaledBitmap,
+                    ocrText = ocr.rawText,
+                    ocrPhones = ocr.extractedPhoneNumbers
+                )
+                _photoState.value = AsyncUiState.Success(report)
+                _attachedContextSummary.value =
+                    "Photo Scan Summary: ${report.imageDescription}\nExtracted Numbers: ${report.extractedPhoneNumbers.joinToString(", ").ifBlank { "None" }}\nOCR Text: ${report.visibleTextSummary.take(250)}"
+
+                if (localPrefs.value.saveSearchHistory) {
+                    historyRepo.saveRecord(
+                        recordType = HistoryRecordType.PHOTO,
+                        title = "AI Photo Scan (${report.extractedPhoneNumbers.size} numbers)",
+                        subtitle = report.detectedObjects.take(3).joinToString(", ").ifBlank { "Image OCR" },
+                        riskLevel = "Info",
+                        riskScore = 0,
+                        summaryText = "${report.imageDescription}\nNumbers: ${report.extractedPhoneNumbers.joinToString(", ").ifBlank { "None" }}",
+                        sourceAttribution = report.sourceAttribution
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Photo analysis failed", e)
+                _photoState.value = AsyncUiState.Error(
+                    e.localizedMessage ?: "Photo analysis failed. Please try another image."
+                )
+            }
+        }
+    }
+
+    fun updateSpamInput(value: String) {
+        _spamInput.value = value
+    }
+
+    fun analyzeSpamMessage(inputType: String = "Suspicious Message / Number") {
+        val text = _spamInput.value.trim()
+        if (text.isBlank()) {
+            _spamState.value = AsyncUiState.Error("Paste a suspicious SMS, WhatsApp message, URL, or phone number to analyze.")
+            return
+        }
+        val acquired = rateLimiter.tryAcquire()
+        if (acquired.isFailure) {
+            _spamState.value = AsyncUiState.Error(
+                acquired.exceptionOrNull()?.message ?: "Rate limit active.",
+                isRateLimited = true
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _spamState.value = AsyncUiState.Loading("Inspecting phishing cues, urgency triggers & fraud patterns...")
+            try {
+                val report = aiService.analyzeSpamOrMessage(inputType, text)
+                _spamState.value = AsyncUiState.Success(report)
+                _attachedContextSummary.value =
+                    "Spam Scan [${report.scamCategory}] Risk: ${report.riskLevel} (${report.spamRiskScore}/100)\n${report.explanationEn}"
+
+                if (localPrefs.value.saveSearchHistory) {
+                    historyRepo.saveRecord(
+                        recordType = HistoryRecordType.SPAM,
+                        title = report.scamCategory,
+                        subtitle = report.inputPreview,
+                        riskLevel = report.riskLevel,
+                        riskScore = report.spamRiskScore,
+                        summaryText = "${report.explanationEn}\n\n${report.explanationHi}",
+                        sourceAttribution = report.sourceAttribution
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Spam analysis failed", e)
+                _spamState.value = AsyncUiState.Error(
+                    e.localizedMessage ?: "Could not analyze message for spam."
+                )
+            }
+        }
+    }
+
+    fun sendChatMessage(prompt: String, includeAttachedContext: Boolean = true) {
+        val trimmed = prompt.trim()
+        if (trimmed.isBlank() || _isChatStreaming.value) return
+
+        val acquired = rateLimiter.tryAcquire()
+        if (acquired.isFailure) {
+            emitToast(acquired.exceptionOrNull()?.message ?: "Rate limit exceeded.")
+            return
+        }
+
+        val userMsg = ChatMessage(
+            id = UUID.randomUUID().toString(),
+            isUser = true,
+            text = trimmed
+        )
+        val assistantMsgId = UUID.randomUUID().toString()
+        val placeholderMsg = ChatMessage(
+            id = assistantMsgId,
+            isUser = false,
+            text = "",
+            isStreaming = true,
+            confidenceTag = "Analyzing...",
+            sourceTag = "Firebase AI Logic • Gemini 3.8 Flash"
+        )
+
+        val priorHistory: List<Content> = _chatMessages.value
+            .filter { it.id != "welcome" && it.text.isNotBlank() }
+            .takeLast(8)
+            .map { msg ->
+                content(if (msg.isUser) "user" else "model") { text(msg.text) }
+            }
+
+        _chatMessages.value = _chatMessages.value + userMsg + placeholderMsg
+        _isChatStreaming.value = true
+
+        viewModelScope.launch {
+            try {
+                val contextStr = if (includeAttachedContext) _attachedContextSummary.value else null
+                aiService.streamAssistantReply(
+                    userMessage = trimmed,
+                    historyContent = priorHistory,
+                    preferredLanguage = localPrefs.value.language,
+                    attachedContext = contextStr
+                ).collect { partial ->
+                    _chatMessages.value = _chatMessages.value.map { msg ->
+                        if (msg.id == assistantMsgId) {
+                            msg.copy(text = partial, isStreaming = true)
+                        } else msg
+                    }
+                }
+                _chatMessages.value = _chatMessages.value.map { msg ->
+                    if (msg.id == assistantMsgId) {
+                        msg.copy(isStreaming = false, confidenceTag = "Verified AI")
+                    } else msg
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Chat streaming failed", e)
+                _chatMessages.value = _chatMessages.value.map { msg ->
+                    if (msg.id == assistantMsgId) {
+                        msg.copy(
+                            text = "Error: ${e.localizedMessage ?: "Unable to reach Firebase AI Logic."}",
+                            isStreaming = false,
+                            confidenceTag = "Error"
+                        )
+                    } else msg
+                }
+            } finally {
+                _isChatStreaming.value = false
+            }
+        }
+    }
+
+    fun openAssistantWithContext(prompt: String, contextText: String) {
+        _attachedContextSummary.value = contextText
+        _activeScreen.value = DashboardCardId.AI_ASSISTANT
+        sendChatMessage(prompt, includeAttachedContext = true)
+    }
+
+    fun deleteHistoryRecord(id: String) {
+        viewModelScope.launch {
+            historyRepo.deleteRecord(id)
+            emitToast("Search record deleted from encrypted vault.")
+        }
+    }
+
+    fun clearAllHistory() {
+        viewModelScope.launch {
+            historyRepo.clearAll()
+            emitToast("All local search history cleared.")
+        }
+    }
+
+    fun exportAndSharePdf(
         context: Context,
-        passphrase: String,
-        customers: List<Customer>,
-        transactions: List<LedgerTransaction>
+        title: String,
+        records: List<SearchHistoryRecord>
     ) {
         viewModelScope.launch {
-            val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-            val fileName = "SimpleSmsCalc_$stamp.sscbak"
-            withContext(Dispatchers.IO) {
-                val dir = File(context.filesDir, "backups").apply { mkdirs() }
-                val target = File(dir, fileName)
-                target.outputStream().use { out ->
-                    ReportExporter.exportEncryptedBackup(out, passphrase, customers, transactions)
-                }
-            }
-            val now = System.currentTimeMillis()
-            repository.updateOwnerProfileSettings(lastBackupEpochMs = now)
-            repository.logAuditEvent(
-                action = AuditAction.BACKUP_SYNC,
-                entityId = fileName,
-                summary = "Created encrypted local snapshot ($fileName)"
-            )
-            refreshLocalSnapshots(context)
-            emitMessage("Encrypted local snapshot saved: $fileName")
-        }
-    }
-
-    fun markExternalBackupSaved(fileName: String) {
-        viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            repository.updateOwnerProfileSettings(lastBackupEpochMs = now)
-            repository.logAuditEvent(
-                action = AuditAction.BACKUP_SYNC,
-                entityId = fileName,
-                summary = "Exported AES-256 encrypted backup to local storage"
-            )
-            emitMessage("Encrypted backup (.sscbak) saved to device storage!")
-        }
-    }
-
-    fun deleteLocalSnapshot(context: Context, filePath: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val file = File(filePath)
-            if (file.exists()) {
-                file.delete()
-            }
-            refreshLocalSnapshots(context)
-        }
-    }
-
-    fun restoreBackupData(customers: List<Customer>, transactions: List<LedgerTransaction>) {
-        viewModelScope.launch {
-            val res = repository.restoreCustomersAndTransactions(customers, transactions)
-            res.onSuccess { count ->
-                emitMessage("Restored $count records into encrypted local vault")
-            }.onFailure { err ->
-                emitMessage(err.localizedMessage ?: "Restore failed")
+            try {
+                val file = KaranPdfExporter.exportRecordsToPdf(context, title, records)
+                KaranPdfExporter.sharePdfFile(context, file, title)
+                emitToast("PDF report ready to share.")
+            } catch (e: Exception) {
+                Log.e(TAG, "PDF export failed", e)
+                emitToast("PDF export failed: ${e.localizedMessage ?: "Unknown error"}")
             }
         }
     }
 
-    private fun handleError(opName: String, error: Throwable): String {
-        if (error is CancellationException) throw error
-        Log.w(TAG, "Error in $opName", error)
-        return error.localizedMessage ?: "Unable to read encrypted local database"
+    fun exportCurrentLookupPdf(context: Context, report: NumberLookupReport) {
+        val record = SearchHistoryRecord(
+            id = "temp",
+            recordType = if (report.isBusinessMode) HistoryRecordType.BUSINESS else HistoryRecordType.NUMBER,
+            title = report.validation.internationalFormat,
+            subtitle = "${report.publicCallerOrBusinessName} (${report.validation.countryName})",
+            riskLevel = report.riskLevel,
+            riskScore = report.spamRiskScore,
+            summaryText = buildString {
+                appendLine("E.164: ${report.validation.e164Format}")
+                appendLine("Type: ${report.validation.numberType}")
+                appendLine("Category: ${report.entityCategory}")
+                appendLine("Carrier Note: ${report.carrierNetworkNote}")
+                appendLine("Summary (EN): ${report.summaryEn}")
+                appendLine("Summary (HI): ${report.summaryHi}")
+            },
+            sourceAttribution = report.sourceAttribution,
+            createdAtMillis = report.analyzedAtMillis
+        )
+        exportAndSharePdf(context, "Number Verification Report", listOf(record))
     }
 
-    private companion object {
-        const val TAG = "MainViewModel"
+    fun refreshRateLimiter() {
+        rateLimiter.refreshStatus()
+    }
+
+    fun emitToast(message: String) {
+        _toastMessages.tryEmit(message)
+    }
+
+    private fun buildNumberContextString(report: NumberLookupReport): String {
+        return buildString {
+            appendLine("Number: ${report.validation.internationalFormat} (${report.validation.countryName}, ${report.validation.numberType})")
+            appendLine("Public Entity: ${report.publicCallerOrBusinessName} [${report.entityCategory}]")
+            appendLine("Risk: ${report.riskLevel} (${report.spamRiskScore}/100)")
+            appendLine("Summary: ${report.summaryEn}")
+        }
     }
 }

@@ -1,19 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Normal permissions (100% offline: no network or tracking permissions) -->
+    <!-- Normal permissions for secure HTTPS AI communication & biometric vault unlock -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
-    <!-- Feature-gated runtime permissions (requested only when user triggers each feature) -->
-    <uses-permission android:name="android.permission.SEND_SMS" />
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- Feature-gated runtime permission (requested only when user captures a photo via camera) -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Optional hardware features (tablets / Wi-Fi devices remain supported) -->
-    <uses-feature
-        android:name="android.hardware.telephony"
-        android:required="false" />
+    <!-- Optional hardware features -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
@@ -26,24 +22,20 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SimpleSmsCalculator">
+        android:theme="@style/Theme.KaranNumberFinderPro">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:launchMode="singleTop"
-            android:theme="@style/Theme.SimpleSmsCalculator"
+            android:theme="@style/Theme.KaranNumberFinderPro"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <receiver
-            android:name=".notifications.PaymentReminderReceiver"
-            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

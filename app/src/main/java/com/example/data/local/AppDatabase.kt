@@ -6,38 +6,28 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [
-        OwnerProfileEntity::class,
-        CustomerEntity::class,
-        TransactionEntity::class,
-        AuditLogEntity::class,
-        CalcHistoryEntity::class
-    ],
-    version = 1,
+    entities = [SearchHistoryEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun ledgerDao(): LedgerDao
+    abstract fun searchHistoryDao(): SearchHistoryDao
 
     companion object {
         @Volatile
-        private var instance: AppDatabase? = null
+        private var INSTANCE: AppDatabase? = null
 
         fun getInstance(context: Context): AppDatabase {
-            return instance ?: synchronized(this) {
-                instance ?: Room.databaseBuilder(
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "simple_sms_calc_encrypted.db"
-                ).build().also { instance = it }
+                    "karan_finder_vault.db"
+                )
+                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .build()
+                    .also { INSTANCE = it }
             }
-        }
-
-        fun createInMemory(context: Context): AppDatabase {
-            return Room.inMemoryDatabaseBuilder(
-                context.applicationContext,
-                AppDatabase::class.java
-            ).allowMainThreadQueries().build()
         }
     }
 }

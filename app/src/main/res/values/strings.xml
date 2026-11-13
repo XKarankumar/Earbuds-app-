@@ -1,17 +1,15 @@
 <resources>
     <string name="app_name">Karan Number Finder Pro AI</string>
     <string name="brand_owner">Hardik Kumar</string>
+    <string name="brand_version">1.0</string>
     <string name="brand_copyright">© 2026 Hardik Kumar. All Rights Reserved.</string>
-    <string name="nav_calculator">Calculator</string>
-    <string name="nav_ledger">Hisab-Kitab</string>
-    <string name="nav_tools">Tools</string>
-    <string name="nav_history">Audit</string>
-    <string name="nav_settings">Settings</string>
-    <string name="cd_hero_ledger">Simple SMS Calculator glassmorphic ledger artwork</string>
+    <string name="cd_app_logo">Karan Number Finder Pro AI shield logo</string>
+    <string name="cd_hero_banner">Karan Number Finder Pro AI glassmorphic security artwork</string>
     <string name="cd_back">Navigate back</string>
     <string name="cd_close">Close</string>
-    <string name="cd_add_customer">Add customer</string>
-    <string name="cd_scan_bill">Scan bill or QR code</string>
-    <string name="cd_send_sms">Send SMS receipt</string>
-    <string name="cd_lock_app">Lock app</string>
+    <string name="cd_theme_toggle">Switch Dark 3D Glass and White Glass theme</string>
+    <string name="cd_delete_record">Delete search record</string>
+    <string name="cd_export_pdf">Export report as PDF</string>
+    <string name="cd_share_report">Share report</string>
+    <string name="cd_lock_app">Lock local vault</string>
 </resources>

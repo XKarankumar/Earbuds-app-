@@ -14,19 +14,19 @@ import androidx.core.view.WindowCompat
 import com.example.model.AppThemeId
 
 val LocalGlassPalette = staticCompositionLocalOf {
-    AppThemes.glassPaletteFor(AppThemeId.OBSIDIAN_EMERALD)
+    AppThemes.glassPaletteFor(AppThemeId.DARK_3D_GLASS)
 }
 
 val LocalAppThemeId = staticCompositionLocalOf {
-    AppThemeId.OBSIDIAN_EMERALD
+    AppThemeId.DARK_3D_GLASS
 }
 
-val LocalGlassIntensity = staticCompositionLocalOf { 0.85f }
+val LocalGlassIntensity = staticCompositionLocalOf { 0.88f }
 
 @Composable
-fun SimpleSmsCalculatorTheme(
-    themeId: AppThemeId = AppThemeId.OBSIDIAN_EMERALD,
-    glassIntensity: Float = 0.85f,
+fun KaranFinderTheme(
+    themeId: AppThemeId = AppThemeId.DARK_3D_GLASS,
+    glassIntensity: Float = 0.88f,
     content: @Composable () -> Unit
 ) {
     val targetScheme = AppThemes.colorSchemeFor(themeId)

@@ -29,7 +29,7 @@ object BiometricHelper {
 
     fun authenticate(
         activity: FragmentActivity,
-        title: String = "Unlock Simple SMS Calculator",
+        title: String = "Unlock Karan Number Finder Pro AI",
         subtitle: String = "Verify your fingerprint or face biometric",
         negativeButtonText: String = "Use PIN",
         onSuccess: () -> Unit,

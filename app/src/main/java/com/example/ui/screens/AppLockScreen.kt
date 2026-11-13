@@ -104,7 +104,7 @@ fun AppLockScreen(
                         style = MaterialTheme.typography.headlineSmall
                     )
                     Text(
-                        text = "Simple SMS Calculator is locked for Hardik Kumar's financial security.",
+                        text = "Karan Number Finder Pro AI local vault is locked.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
