@@ -5,7 +5,8 @@ plugins {
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.secrets)
-  alias(libs.plugins.google.services)
+  // Google services unused for 100% offline app
+  // alias(libs.plugins.google.services)
 }
 
 android {
@@ -13,7 +14,7 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.smscalc.hkmpzq"
+    applicationId = "com.hardikkumar.simplesmscalculator"
     minSdk = 24
     targetSdk = 36
     versionCode = 1
@@ -88,8 +89,8 @@ tasks.withType<Test> {
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
   implementation(libs.androidx.activity.compose)
-  implementation(libs.androidx.biometric)
-  // CameraX & barcode scanning commented out for APK size optimization (Photo Picker + TakePicture used)
+  // implementation(libs.androidx.biometric)
+  // CameraX & barcode scanning commented out for APK size optimization
   // implementation(libs.androidx.camera.camera2)
   // implementation(libs.androidx.camera.core)
   // implementation(libs.androidx.camera.lifecycle)
@@ -109,16 +110,17 @@ dependencies {
   implementation(libs.androidx.room.runtime)
   implementation(libs.androidx.room.ktx)
   ksp(libs.androidx.room.compiler)
-  implementation(libs.coil.compose)
-  implementation(platform(libs.firebase.bom))
-  implementation(libs.firebase.ai)
-  implementation(libs.firebase.appcheck.recaptcha)
-  implementation(libs.firebase.appcheck.debug)
+  // Unused networking/AI/ML dependencies commented out for 100% offline APK size optimization
+  // implementation(libs.coil.compose)
+  // implementation(platform(libs.firebase.bom))
+  // implementation(libs.firebase.ai)
+  // implementation(libs.firebase.appcheck.recaptcha)
+  // implementation(libs.firebase.appcheck.debug)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
-  implementation(libs.libphonenumber)
+  // implementation(libs.libphonenumber)
   // implementation(libs.mlkit.barcode.scanning)
-  implementation(libs.mlkit.text.recognition)
+  // implementation(libs.mlkit.text.recognition)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)

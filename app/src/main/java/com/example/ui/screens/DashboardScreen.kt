@@ -1,10 +1,11 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,30 +18,31 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.DocumentScanner
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.PhoneInTalk
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Sms
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,122 +59,126 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
-import com.example.model.DashboardCardId
-import com.example.ui.components.GlassCard
-import com.example.ui.theme.LocalAppThemeId
-import com.example.ui.theme.LocalGlassPalette
+import com.example.domain.CalculatorEngine
+import com.example.model.AppDestination
+import com.example.model.CustomerSummary
+import com.example.model.OceanEmeraldMode
+import com.example.model.TransactionType
+import com.example.ui.components.OceanGlassCard
+import com.example.ui.components.OceanPillBadge
+import com.example.ui.theme.JetBrainsMonoFamily
+import com.example.ui.theme.LocalOceanPalette
+import com.example.ui.theme.OceanEmeraldColors
 import com.example.ui.viewmodel.MainViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+private data class DashboardShortcut(
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector,
+    val accent: Color,
+    val destination: AppDestination,
+    val testTag: String
+)
 
 @Composable
 fun DashboardScreen(
     viewModel: MainViewModel,
-    onOpenCard: (DashboardCardId) -> Unit
+    onNavigate: (AppDestination) -> Unit
 ) {
-    val prefs by viewModel.localPrefs.collectAsStateWithLifecycle()
-    val history by viewModel.searchHistory.collectAsStateWithLifecycle()
-    val rateSnapshot by viewModel.rateLimitSnapshot.collectAsStateWithLifecycle()
-    val themeId = LocalAppThemeId.current
-    val glass = LocalGlassPalette.current
-    var quickNumber by remember { mutableStateOf("") }
+    val metrics by viewModel.dashboardMetrics.collectAsStateWithLifecycle()
+    val customers by viewModel.customerSummaries.collectAsStateWithLifecycle()
+    val recentTransactions by viewModel.recentTransactions.collectAsStateWithLifecycle()
+    val prefs by viewModel.prefs.collectAsStateWithLifecycle()
+    val palette = LocalOceanPalette.current
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val isWide = maxWidth >= 720.dp
-        val columns = if (isWide) 4 else 2
+    var showAddCustomerDialog by remember { mutableStateOf(false) }
 
+    val shortcuts = remember {
+        listOf(
+            DashboardShortcut(
+                "Quick Calculator",
+                "Ocean & Emerald keypad",
+                Icons.Default.Calculate,
+                OceanEmeraldColors.OceanBlue,
+                AppDestination.Calculator,
+                "shortcut_calculator"
+            ),
+            DashboardShortcut(
+                "SMS Shortcut",
+                "Templates & reminders",
+                Icons.Default.Sms,
+                OceanEmeraldColors.EmeraldGreen,
+                AppDestination.SmsCenter,
+                "shortcut_sms"
+            ),
+            DashboardShortcut(
+                "Unit Converter",
+                "Length, weight, area",
+                Icons.Default.SwapHoriz,
+                OceanEmeraldColors.MintGreen,
+                AppDestination.UnitConverter,
+                "shortcut_converter"
+            ),
+            DashboardShortcut(
+                "GST & Finance",
+                "GST, EMI & Discount",
+                Icons.Default.Percent,
+                OceanEmeraldColors.OceanBlue,
+                AppDestination.GstCalculators,
+                "shortcut_gst"
+            ),
+            DashboardShortcut(
+                "Hisab-Kitab",
+                "Customer accounts",
+                Icons.Default.AccountBalanceWallet,
+                OceanEmeraldColors.EmeraldGreen,
+                AppDestination.HisabKitab,
+                "shortcut_hisab"
+            ),
+            DashboardShortcut(
+                "Reports",
+                "Charts & PDF export",
+                Icons.Default.Assessment,
+                OceanEmeraldColors.MintGreen,
+                AppDestination.Reports,
+                "shortcut_reports"
+            )
+        )
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
         LazyColumn(
             modifier = Modifier
+                .widthIn(max = 680.dp)
                 .fillMaxSize()
-                .widthIn(max = 1040.dp)
-                .align(Alignment.TopCenter),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .testTag("dashboard_list"),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Top Brand Bar
+            // Hero Header Banner
             item {
-                Row(
+                OceanGlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Image(
-                            painter = painterResource(R.drawable.ic_karan_finder_fg_1794567636995),
-                            contentDescription = stringResource(R.string.cd_app_logo),
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                        )
-                        Column {
-                            Text(
-                                text = "Karan Number Finder",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "Pro AI • Guest Mode Active",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        if (prefs.pinLockEnabled) {
-                            IconButton(
-                                onClick = viewModel::lockAppNow,
-                                modifier = Modifier.testTag("btn_lock_vault")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = stringResource(R.string.cd_lock_app)
-                                )
-                            }
-                        }
-                        IconButton(
-                            onClick = viewModel::toggleQuickTheme,
-                            modifier = Modifier.testTag("btn_toggle_theme")
-                        ) {
-                            Icon(
-                                imageVector = if (themeId.isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                contentDescription = stringResource(R.string.cd_theme_toggle)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Hero Glass Card with Quick Number Lookup
-            item {
-                GlassCard(
                     elevated = true,
-                    contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    contentPadding = PaddingValues(0.dp)
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(144.dp)
+                            .height(156.dp)
                     ) {
-                        val heroRes = if (themeId.isDark) {
-                            R.drawable.img_karan_dark_hero_1794567638092
-                        } else {
-                            R.drawable.img_karan_white_hero_1794567639255
-                        }
                         Image(
-                            painter = painterResource(heroRes),
+                            painter = painterResource(id = R.drawable.img_ocean_emerald_hero_1794570568765),
                             contentDescription = stringResource(R.string.cd_hero_banner),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
@@ -182,90 +188,157 @@ fun DashboardScreen(
                                 .fillMaxSize()
                                 .background(
                                     Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color.Transparent,
-                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+                                        listOf(
+                                            OceanEmeraldColors.DeepOceanBlue.copy(alpha = 0.52f),
+                                            OceanEmeraldColors.DeepOceanBlue.copy(alpha = 0.86f)
                                         )
                                     )
                                 )
-                        )
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
                                 .padding(16.dp)
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = glass.safeAccent.copy(alpha = 0.2f)
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(
-                                    text = "HTTPS + App Check • ${history.size} Encrypted Records",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = glass.safeAccent,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                )
-                            }
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = "Verify Numbers, Photos & Scams Safely",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = quickNumber,
-                                onValueChange = { quickNumber = it },
-                                placeholder = { Text("+91 98XXX XXXXX or 1930") },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Phone,
-                                    imeAction = ImeAction.Search
-                                ),
-                                keyboardActions = KeyboardActions(
-                                    onSearch = {
-                                        if (quickNumber.isNotBlank()) {
-                                            viewModel.jumpToNumberLookup(quickNumber)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OceanPillBadge(
+                                        text = "OCEAN EMERALD 3.5",
+                                        accent = OceanEmeraldColors.MintGreen
+                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        IconButton(
+                                            onClick = viewModel::toggleThemeMode,
+                                            modifier = Modifier
+                                                .minimumInteractiveComponentSize()
+                                                .testTag("btn_dashboard_theme_toggle")
+                                        ) {
+                                            Icon(
+                                                imageVector = if (prefs.themeMode == OceanEmeraldMode.DARK) {
+                                                    Icons.Default.LightMode
+                                                } else {
+                                                    Icons.Default.DarkMode
+                                                },
+                                                contentDescription = stringResource(R.string.cd_theme_toggle),
+                                                tint = OceanEmeraldColors.GlassWhite
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { onNavigate(AppDestination.Settings) },
+                                            modifier = Modifier
+                                                .minimumInteractiveComponentSize()
+                                                .testTag("btn_dashboard_settings")
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Settings,
+                                                contentDescription = "Settings",
+                                                tint = OceanEmeraldColors.GlassWhite
+                                            )
                                         }
                                     }
-                                ),
-                                leadingIcon = {
-                                    Icon(Icons.Default.Search, contentDescription = null)
-                                },
-                                shape = RoundedCornerShape(16.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("dashboard_quick_input")
-                            )
-                            Button(
-                                onClick = {
-                                    if (quickNumber.isNotBlank()) {
-                                        viewModel.jumpToNumberLookup(quickNumber)
-                                    } else {
-                                        onOpenCard(DashboardCardId.NUMBER_LOOKUP)
-                                    }
-                                },
-                                shape = RoundedCornerShape(16.dp),
-                                modifier = Modifier
-                                    .height(54.dp)
-                                    .testTag("dashboard_quick_search_btn")
-                            ) {
-                                Text("Scan")
+                                }
+                                Column {
+                                    Text(
+                                        text = "Simple SMS Calculator",
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        color = OceanEmeraldColors.GlassWhite
+                                    )
+                                    Text(
+                                        text = "Smart Calc • Hisab-Kitab • Offline SMS Ledger • By Hardik Kumar",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = OceanEmeraldColors.MintGreen.copy(alpha = 0.92f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
+                    }
+                }
+            }
 
+            // Total Jama & Total Udhaar Cards
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OceanGlassCard(
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("card_total_jama"),
+                        glowBorderColor = OceanEmeraldColors.EmeraldGreen,
+                        onClick = { onNavigate(AppDestination.HisabKitab) }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                contentDescription = "Total Jama",
+                                tint = palette.jamaAccent,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Total Jama",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "Privacy Shield: Never exposes private home addresses, Aadhaar, banking info, or live location.",
+                            text = CalculatorEngine.formatCurrency(metrics.totalJama, prefs.currency.symbol),
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontFamily = JetBrainsMonoFamily,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = palette.jamaAccent,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "Received / Credit",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    OceanGlassCard(
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("card_total_udhaar"),
+                        glowBorderColor = OceanEmeraldColors.OceanBlue,
+                        onClick = { onNavigate(AppDestination.HisabKitab) }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.TrendingDown,
+                                contentDescription = "Total Udhaar",
+                                tint = palette.udhaarAccent,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Total Udhaar",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = CalculatorEngine.formatCurrency(metrics.totalUdhaar, prefs.currency.symbol),
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontFamily = JetBrainsMonoFamily,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = palette.udhaarAccent,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "Given / Debit",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -273,152 +346,341 @@ fun DashboardScreen(
                 }
             }
 
-            // 8 Dashboard Cards Grid
+            // Remaining Balance Card
             item {
-                Text(
-                    text = "Intelligence Modules",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
-            }
-
-            val rows = DashboardCardId.entries.chunked(columns)
-            items(rows.size) { rowIdx ->
-                val rowCards = rows[rowIdx]
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    rowCards.forEach { card ->
-                        DashboardModuleCard(
-                            card = card,
-                            historyCount = history.size,
-                            rateRemaining = (rateSnapshot.maxPerMinute - rateSnapshot.requestsInLastMinute).coerceAtLeast(0),
-                            modifier = Modifier.weight(1f),
-                            onClick = { onOpenCard(card) }
-                        )
-                    }
-                    repeat(columns - rowCards.size) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-
-            // Footer Branding
-            item {
-                Column(
+                val net = metrics.netBalance
+                val balanceColor = if (net >= 0) palette.jamaAccent else palette.warningAccent
+                OceanGlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .testTag("card_remaining_balance"),
+                    elevated = true,
+                    onClick = { onNavigate(AppDestination.Reports) }
                 ) {
-                    Text(
-                        text = stringResource(R.string.brand_copyright),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Karan Number Finder Pro AI • Version 1.0",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Remaining Balance",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = CalculatorEngine.formatCurrency(kotlin.math.abs(net), prefs.currency.symbol),
+                                style = MaterialTheme.typography.displaySmall.copy(
+                                    fontFamily = JetBrainsMonoFamily
+                                ),
+                                color = balanceColor
+                            )
+                            Text(
+                                text = when {
+                                    net > 0.01 -> "Net Receivable across ${metrics.customerCount} customers"
+                                    net < -0.01 -> "Net Advance held across ${metrics.customerCount} customers"
+                                    else -> "All accounts settled • ${metrics.customerCount} customers"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "View reports",
+                            tint = balanceColor
+                        )
+                    }
                 }
             }
+
+            // Customer Shortcuts Strip
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Customer Shortcuts",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    TextButton(onClick = { onNavigate(AppDestination.HisabKitab) }) {
+                        Text("All (${customers.size})")
+                    }
+                }
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    item {
+                        OceanGlassCard(
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
+                            glowBorderColor = OceanEmeraldColors.MintGreen,
+                            onClick = { showAddCustomerDialog = true },
+                            modifier = Modifier.testTag("btn_dashboard_add_customer")
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(CircleShape)
+                                        .background(OceanEmeraldColors.EmeraldGreen.copy(alpha = 0.25f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = stringResource(R.string.cd_add_customer),
+                                        tint = palette.jamaAccent
+                                    )
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    text = "Add Customer",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+
+                    items(customers.take(10), key = { it.id }) { customer ->
+                        CustomerShortcutPill(
+                            customer = customer,
+                            currencySymbol = prefs.currency.symbol,
+                            onClick = { onNavigate(AppDestination.CustomerProfile(customer.id)) }
+                        )
+                    }
+                }
+            }
+
+            // Quick Tools & Shortcuts (2-column grid)
+            item {
+                Text(
+                    text = "Quick Workspace",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    shortcuts.chunked(2).forEach { pair ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            pair.forEach { item ->
+                                OceanGlassCard(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag(item.testTag),
+                                    contentPadding = PaddingValues(14.dp),
+                                    onClick = { onNavigate(item.destination) }
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(item.accent.copy(alpha = 0.18f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = item.icon,
+                                            contentDescription = item.title,
+                                            tint = item.accent,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Spacer(Modifier.height(10.dp))
+                                    Text(
+                                        text = item.title,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = item.subtitle,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Recent Transactions
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Recent Transactions",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    if (recentTransactions.isNotEmpty()) {
+                        TextButton(onClick = { onNavigate(AppDestination.Reports) }) {
+                            Text("View Reports")
+                        }
+                    }
+                }
+            }
+
+            if (recentTransactions.isEmpty()) {
+                item {
+                    OceanGlassCard(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "No transactions yet",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "Add a customer in Hisab-Kitab or send a calculation directly from the Calculator to track Jama & Udhaar offline.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                val dateFmt = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
+                items(recentTransactions.take(8), key = { it.id }) { tx ->
+                    val isJama = tx.type == TransactionType.JAMA
+                    val txColor = if (isJama) palette.jamaAccent else palette.udhaarAccent
+                    OceanGlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(14.dp),
+                        onClick = { onNavigate(AppDestination.CustomerProfile(tx.customerId)) }
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = tx.customerName,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = buildString {
+                                        append(if (isJama) "Jama Received" else "Udhaar Given")
+                                        if (tx.note.isNotBlank()) append(" • ${tx.note}")
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = dateFmt.format(Date(tx.createdAtMillis)),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                                )
+                            }
+                            Text(
+                                text = (if (isJama) "+" else "-") +
+                                    CalculatorEngine.formatCurrency(tx.amount, prefs.currency.symbol),
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontFamily = JetBrainsMonoFamily,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = txColor
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    text = stringResource(R.string.brand_copyright),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp, bottom = 12.dp)
+                )
+            }
         }
+    }
+
+    if (showAddCustomerDialog) {
+        AddCustomerDialog(
+            currencySymbol = prefs.currency.symbol,
+            onDismiss = { showAddCustomerDialog = false },
+            onConfirm = { name, phone, notes, openAmt, openType ->
+                viewModel.addCustomer(name, phone, notes, openAmt, openType)
+                showAddCustomerDialog = false
+            }
+        )
     }
 }
 
 @Composable
-private fun DashboardModuleCard(
-    card: DashboardCardId,
-    historyCount: Int,
-    rateRemaining: Int,
-    modifier: Modifier = Modifier,
+private fun CustomerShortcutPill(
+    customer: CustomerSummary,
+    currencySymbol: String,
     onClick: () -> Unit
 ) {
-    val glass = LocalGlassPalette.current
-    val (icon, accent) = cardVisuals(card, glass.infoAccent, glass.safeAccent, glass.warningAccent, glass.dangerAccent)
-    val dynamicBadge = when (card) {
-        DashboardCardId.SEARCH_HISTORY -> "$historyCount Saved"
-        DashboardCardId.SECURITY_CENTER -> "$rateRemaining/min Left"
-        else -> card.badge
-    }
+    val palette = LocalOceanPalette.current
+    val initials = customer.name
+        .split(" ")
+        .filter { it.isNotBlank() }
+        .take(2)
+        .joinToString("") { it.first().uppercaseChar().toString() }
+        .ifBlank { "C" }
+    val balColor = if (customer.netBalance > 0.01) palette.udhaarAccent else palette.jamaAccent
 
-    GlassCard(
-        modifier = modifier.testTag("card_${card.name.lowercase()}"),
-        onClick = onClick,
-        contentPadding = PaddingValues(14.dp)
+    OceanGlassCard(
+        shape = RoundedCornerShape(20.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        onClick = onClick
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(34.dp)
                     .clip(CircleShape)
-                    .background(accent.copy(alpha = 0.16f)),
+                    .background(
+                        Brush.linearGradient(
+                            listOf(OceanEmeraldColors.OceanBlue, OceanEmeraldColors.EmeraldGreen)
+                        )
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = card.title,
-                    tint = accent,
-                    modifier = Modifier.size(22.dp)
+                Text(
+                    text = initials,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = OceanEmeraldColors.GlassWhite,
+                    fontWeight = FontWeight.Bold
                 )
             }
-
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = accent.copy(alpha = 0.14f)
-            ) {
+            Spacer(Modifier.width(10.dp))
+            Column {
                 Text(
-                    text = dynamicBadge,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = accent,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    text = customer.name,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1
+                )
+                Text(
+                    text = CalculatorEngine.formatCurrency(kotlin.math.abs(customer.netBalance), currencySymbol),
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFamily),
+                    color = balColor
                 )
             }
         }
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            text = card.title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-
-        Spacer(Modifier.height(4.dp))
-
-        Text(
-            text = card.subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
     }
-}
-
-private fun cardVisuals(
-    card: DashboardCardId,
-    info: Color,
-    safe: Color,
-    warn: Color,
-    danger: Color
-): Pair<ImageVector, Color> = when (card) {
-    DashboardCardId.NUMBER_LOOKUP -> Icons.Default.PhoneInTalk to info
-    DashboardCardId.PHOTO_SCANNER -> Icons.Default.DocumentScanner to safe
-    DashboardCardId.SPAM_DETECTOR -> Icons.Default.Shield to danger
-    DashboardCardId.AI_ASSISTANT -> Icons.Default.SmartToy to info
-    DashboardCardId.BUSINESS_LOOKUP -> Icons.Default.Business to warn
-    DashboardCardId.SEARCH_HISTORY -> Icons.Default.History to safe
-    DashboardCardId.SECURITY_CENTER -> Icons.Default.Security to safe
-    DashboardCardId.SETTINGS -> Icons.Default.Settings to info
 }

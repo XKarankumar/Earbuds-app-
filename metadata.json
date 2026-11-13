@@ -1,6 +1,6 @@
 {
-  "name": "Karan Number Finder Pro AI",
-  "description": "Karan Number Finder Pro AI – AI-powered phone number verification, spam & fraud risk analysis, photo OCR & object scanner, bilingual Hindi/English AI security assistant, encrypted local search history, PDF export, and privacy dashboard by Hardik Kumar.",
+  "name": "Simple SMS Calculator",
+  "description": "Simple SMS Calculator featuring the Ocean Emerald 3.5 theme — smart animated calculator, offline Hisab-Kitab ledger, customer profiles, zero-permission SMS reminder composer, unit converter, GST/EMI calculators, and PDF reports by Hardik Kumar.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

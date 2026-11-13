@@ -1,552 +1,583 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
-import android.graphics.Bitmap
+import android.content.Intent
 import android.net.Uri
-import android.util.Log
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.ai.FirebaseAiIntelligenceService
-import com.example.ai.OnDeviceOcrScanner
-import com.example.ai.PhoneValidatorEngine
-import com.example.data.SearchHistoryRepository
-import com.example.export.KaranPdfExporter
-import com.example.model.AppLanguage
-import com.example.model.AppThemeId
-import com.example.model.AsyncUiState
-import com.example.model.ChatMessage
-import com.example.model.DashboardCardId
-import com.example.model.HistoryRecordType
-import com.example.model.NumberLookupReport
-import com.example.model.PhotoAnalysisReport
-import com.example.model.SearchHistoryRecord
-import com.example.model.SpamAnalysisReport
+import com.example.data.AppRepository
+import com.example.data.local.CalcHistoryEntity
+import com.example.data.local.SmsLogEntity
+import com.example.domain.CalculatorEngine
+import com.example.export.LedgerPdfExporter
+import com.example.model.AnimationPreset
+import com.example.model.AppDestination
+import com.example.model.CalcRecordCategory
+import com.example.model.CurrencyOption
+import com.example.model.CustomerSummary
+import com.example.model.DashboardMetrics
+import com.example.model.OceanEmeraldMode
+import com.example.model.RecentTransactionItem
+import com.example.model.TransactionType
 import com.example.security.AppPreferencesRepository
 import com.example.security.LocalAppPreferences
-import com.example.security.RateLimitSnapshot
-import com.example.security.RateLimiter
-import com.google.firebase.ai.type.Content
-import com.google.firebase.ai.type.content
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.UUID
+import kotlinx.coroutines.withContext
 
-private const val TAG = "MainViewModel"
+data class CalculatorUiState(
+    val expression: String = "",
+    val result: String = "0",
+    val preview: String? = null,
+    val memoryValue: Double = 0.0,
+    val hasEvaluated: Boolean = false,
+    val errorText: String? = null
+)
+
+data class SmsDraftState(
+    val recipientName: String = "",
+    val recipientPhone: String = "",
+    val amountText: String = "",
+    val templateIndex: Int = 0,
+    val messageBody: String = ""
+)
 
 class MainViewModel(
     application: Application,
-    private val historyRepo: SearchHistoryRepository,
-    private val prefsRepo: AppPreferencesRepository,
-    private val aiService: FirebaseAiIntelligenceService = FirebaseAiIntelligenceService(),
-    private val rateLimiter: RateLimiter = RateLimiter(maxRequestsPerMinute = 12)
+    private val repository: AppRepository,
+    private val prefsRepo: AppPreferencesRepository
 ) : AndroidViewModel(application) {
 
-    val localPrefs: StateFlow<LocalAppPreferences> = prefsRepo.preferencesFlow
-        .stateIn(viewModelScope, SharingStarted.Eagerly, LocalAppPreferences())
+    private val _backStack = MutableStateFlow<List<AppDestination>>(listOf(AppDestination.Calculator))
+    val backStack: StateFlow<List<AppDestination>> = _backStack.asStateFlow()
 
-    val searchHistory: StateFlow<List<SearchHistoryRecord>> = historyRepo.allRecords
+    val currentDestination: AppDestination
+        get() = _backStack.value.lastOrNull() ?: AppDestination.Calculator
+
+    val prefs: StateFlow<LocalAppPreferences> = prefsRepo.preferencesFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LocalAppPreferences())
+
+    val customerSummaries: StateFlow<List<CustomerSummary>> = repository.customerSummariesFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val rateLimitSnapshot: StateFlow<RateLimitSnapshot> = rateLimiter.snapshot
+    val recentTransactions: StateFlow<List<RecentTransactionItem>> = repository.recentTransactionsFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _showSplash = MutableStateFlow(true)
-    val showSplash: StateFlow<Boolean> = _showSplash.asStateFlow()
+    val dashboardMetrics: StateFlow<DashboardMetrics> = repository.dashboardMetricsFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardMetrics())
 
-    private val _isLocked = MutableStateFlow<Boolean?>(null)
-    val isLocked: StateFlow<Boolean?> = _isLocked.asStateFlow()
+    val calcHistory: StateFlow<List<CalcHistoryEntity>> = repository.calcHistoryFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _activeScreen = MutableStateFlow<DashboardCardId?>(null)
-    val activeScreen: StateFlow<DashboardCardId?> = _activeScreen.asStateFlow()
+    val smsLogs: StateFlow<List<SmsLogEntity>> = repository.smsLogsFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _calcState = MutableStateFlow(CalculatorUiState())
+    val calcState: StateFlow<CalculatorUiState> = _calcState.asStateFlow()
+
+    private val _smsDraft = MutableStateFlow(SmsDraftState())
+    val smsDraft: StateFlow<SmsDraftState> = _smsDraft.asStateFlow()
 
     private val _toastMessages = MutableSharedFlow<String>(extraBufferCapacity = 8)
-    val toastMessages: SharedFlow<String> = _toastMessages.asSharedFlow()
+    val toastMessages = _toastMessages.asSharedFlow()
 
-    // Number & Business Lookup State
-    private val _lookupQuery = MutableStateFlow("")
-    val lookupQuery: StateFlow<String> = _lookupQuery.asStateFlow()
+    // --- Navigation ---
 
-    private val _selectedRegion = MutableStateFlow("IN")
-    val selectedRegion: StateFlow<String> = _selectedRegion.asStateFlow()
+    fun navigateToRootTab(destination: AppDestination) {
+        _backStack.value = listOf(destination)
+    }
 
-    private val _businessHint = MutableStateFlow("")
-    val businessHint: StateFlow<String> = _businessHint.asStateFlow()
-
-    private val _isBusinessLookupMode = MutableStateFlow(false)
-    val isBusinessLookupMode: StateFlow<Boolean> = _isBusinessLookupMode.asStateFlow()
-
-    private val _lookupState = MutableStateFlow<AsyncUiState<NumberLookupReport>>(AsyncUiState.Idle)
-    val lookupState: StateFlow<AsyncUiState<NumberLookupReport>> = _lookupState.asStateFlow()
-
-    // Photo Scanner State
-    private val _selectedPhotoUri = MutableStateFlow<Uri?>(null)
-    val selectedPhotoUri: StateFlow<Uri?> = _selectedPhotoUri.asStateFlow()
-
-    private val _photoState = MutableStateFlow<AsyncUiState<PhotoAnalysisReport>>(AsyncUiState.Idle)
-    val photoState: StateFlow<AsyncUiState<PhotoAnalysisReport>> = _photoState.asStateFlow()
-
-    private var cachedScaledBitmap: Bitmap? = null
-    private var cachedOcrText: String = ""
-    private var cachedOcrPhones: List<String> = emptyList()
-
-    // Spam Detector State
-    private val _spamInput = MutableStateFlow("")
-    val spamInput: StateFlow<String> = _spamInput.asStateFlow()
-
-    private val _spamState = MutableStateFlow<AsyncUiState<SpamAnalysisReport>>(AsyncUiState.Idle)
-    val spamState: StateFlow<AsyncUiState<SpamAnalysisReport>> = _spamState.asStateFlow()
-
-    // AI Assistant Chat State
-    private val _chatMessages = MutableStateFlow(
-        listOf(
-            ChatMessage(
-                id = "welcome",
-                isUser = false,
-                text = "नमस्ते! मैं Karan AI Assistant हूँ। आप मुझसे किसी फ़ोन नंबर की सुरक्षा जाँच, संदिग्ध SMS/लिंक की पहचान, या Security Report (Hindi / English) बनाने के लिए पूछ सकते हैं।\n\nHello! Ask me to explain any lookup result, inspect a suspicious message, or generate a bilingual security report.",
-                confidenceTag = "Ready",
-                sourceTag = "Firebase AI Logic • Gemini 3.8 Flash"
-            )
-        )
-    )
-    val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages.asStateFlow()
-
-    private val _isChatStreaming = MutableStateFlow(false)
-    val isChatStreaming: StateFlow<Boolean> = _isChatStreaming.asStateFlow()
-
-    private val _attachedContextSummary = MutableStateFlow<String?>(null)
-    val attachedContextSummary: StateFlow<String?> = _attachedContextSummary.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            val prefs = prefsRepo.preferencesFlow.first()
-            _isLocked.value = prefs.pinLockEnabled
-        }
-        viewModelScope.launch {
-            delay(1100L)
-            _showSplash.value = false
+    fun navigateTo(destination: AppDestination) {
+        val current = _backStack.value
+        if (current.lastOrNull() != destination) {
+            _backStack.value = current + destination
         }
     }
 
-    fun dismissSplash() {
-        _showSplash.value = false
-    }
-
-    fun unlockApp() {
-        _isLocked.value = false
-    }
-
-    fun lockAppNow() {
-        if (localPrefs.value.pinLockEnabled) {
-            _isLocked.value = true
+    fun navigateBack(): Boolean {
+        val current = _backStack.value
+        return if (current.size > 1) {
+            _backStack.value = current.dropLast(1)
+            true
+        } else if (current.firstOrNull() != AppDestination.Calculator) {
+            _backStack.value = listOf(AppDestination.Calculator)
+            true
         } else {
-            emitToast("Set a 4-digit PIN in Security Center to enable vault lock.")
+            false
         }
     }
 
-    fun navigateTo(card: DashboardCardId?) {
-        when (card) {
-            DashboardCardId.BUSINESS_LOOKUP -> {
-                _isBusinessLookupMode.value = true
-                _activeScreen.value = DashboardCardId.NUMBER_LOOKUP
-            }
-            DashboardCardId.NUMBER_LOOKUP -> {
-                _isBusinessLookupMode.value = false
-                _activeScreen.value = DashboardCardId.NUMBER_LOOKUP
-            }
-            else -> _activeScreen.value = card
-        }
-    }
+    // --- Theme & Preferences ---
 
-    fun navigateBackHome() {
-        _activeScreen.value = null
-    }
-
-    fun toggleQuickTheme() {
-        val current = localPrefs.value.themeId
-        val next = if (current == AppThemeId.WHITE_GLASS) {
-            AppThemeId.DARK_3D_GLASS
+    fun toggleThemeMode() {
+        val next = if (prefs.value.themeMode == OceanEmeraldMode.DARK) {
+            OceanEmeraldMode.LIGHT
         } else {
-            AppThemeId.WHITE_GLASS
+            OceanEmeraldMode.DARK
         }
-        setTheme(next)
+        setThemeMode(next)
     }
 
-    fun setTheme(themeId: AppThemeId) {
-        viewModelScope.launch { prefsRepo.setTheme(themeId) }
+    fun setThemeMode(mode: OceanEmeraldMode) {
+        viewModelScope.launch { prefsRepo.setThemeMode(mode) }
+    }
+
+    fun setAnimationPreset(preset: AnimationPreset) {
+        viewModelScope.launch { prefsRepo.setAnimationPreset(preset) }
     }
 
     fun setGlassIntensity(value: Float) {
         viewModelScope.launch { prefsRepo.setGlassIntensity(value) }
     }
 
-    fun setLanguage(language: AppLanguage) {
-        viewModelScope.launch { prefsRepo.setLanguage(language) }
+    fun setHapticFeedback(enabled: Boolean) {
+        viewModelScope.launch { prefsRepo.setHapticFeedback(enabled) }
     }
 
-    fun setSaveSearchHistory(enabled: Boolean) {
-        viewModelScope.launch { prefsRepo.setSaveSearchHistory(enabled) }
+    fun setCurrency(option: CurrencyOption) {
+        viewModelScope.launch { prefsRepo.setCurrency(option) }
     }
 
-    fun setPinCode(pin: String) {
+    fun setBusinessSignature(signature: String) {
         viewModelScope.launch {
-            prefsRepo.setPinCode(pin)
-            emitToast("Local PIN vault protection enabled.")
+            prefsRepo.setBusinessSignature(signature)
+            emitToast("Signature saved")
         }
     }
 
-    fun disablePinCode() {
+    fun resetSettings() {
         viewModelScope.launch {
-            prefsRepo.disablePinCode()
-            emitToast("Vault lock disabled — Guest Mode active.")
+            prefsRepo.resetDefaults()
+            emitToast("Ocean Emerald 3.5 defaults restored")
         }
     }
 
-    fun setBiometricEnabled(enabled: Boolean) {
-        viewModelScope.launch { prefsRepo.setBiometricEnabled(enabled) }
-    }
+    // --- Calculator Logic ---
 
-    fun setCameraScanEnabled(enabled: Boolean) {
-        viewModelScope.launch { prefsRepo.setCameraScanEnabled(enabled) }
-    }
-
-    fun updateLookupQuery(value: String) {
-        _lookupQuery.value = value
-    }
-
-    fun updateSelectedRegion(regionCode: String) {
-        _selectedRegion.value = regionCode
-    }
-
-    fun updateBusinessHint(hint: String) {
-        _businessHint.value = hint
-    }
-
-    fun setBusinessMode(enabled: Boolean) {
-        _isBusinessLookupMode.value = enabled
-    }
-
-    fun lookupPhoneNumber(customNumber: String? = null, businessMode: Boolean = _isBusinessLookupMode.value) {
-        val query = (customNumber ?: _lookupQuery.value).trim()
-        if (query.isBlank()) {
-            _lookupState.value = AsyncUiState.Error("Please enter a phone number or official helpline code.")
-            return
-        }
-        _lookupQuery.value = query
-        _isBusinessLookupMode.value = businessMode
-
-        val validation = PhoneValidatorEngine.validate(query, _selectedRegion.value)
-        val acquired = rateLimiter.tryAcquire()
-        if (acquired.isFailure) {
-            _lookupState.value = AsyncUiState.Error(
-                acquired.exceptionOrNull()?.message ?: "Rate limit exceeded.",
-                isRateLimited = true
-            )
-            return
-        }
-
-        viewModelScope.launch {
-            _lookupState.value = AsyncUiState.Loading(
-                "Validating ${validation.internationalFormat} (${validation.countryName}) & running AI fraud check..."
-            )
-            try {
-                val report = aiService.analyzePhoneNumber(
-                    validation = validation,
-                    businessQueryHint = _businessHint.value.trim(),
-                    isBusinessMode = businessMode
-                )
-                _lookupState.value = AsyncUiState.Success(report)
-                _attachedContextSummary.value = buildNumberContextString(report)
-
-                if (localPrefs.value.saveSearchHistory) {
-                    historyRepo.saveRecord(
-                        recordType = if (businessMode) HistoryRecordType.BUSINESS else HistoryRecordType.NUMBER,
-                        title = report.validation.internationalFormat,
-                        subtitle = "${report.publicCallerOrBusinessName} • ${report.validation.countryName} (${report.validation.numberType})",
-                        riskLevel = report.riskLevel,
-                        riskScore = report.spamRiskScore,
-                        summaryText = "${report.summaryEn}\n\n${report.summaryHi}",
-                        sourceAttribution = report.sourceAttribution
-                    )
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.e(TAG, "Lookup failed", e)
-                _lookupState.value = AsyncUiState.Error(
-                    e.localizedMessage ?: "Unable to complete AI phone verification."
+    fun onCalcKey(key: String) {
+        val current = _calcState.value
+        when (key) {
+            "AC" -> {
+                _calcState.value = current.copy(
+                    expression = "",
+                    result = "0",
+                    preview = null,
+                    hasEvaluated = false,
+                    errorText = null
                 )
             }
-        }
-    }
-
-    fun jumpToNumberLookup(phone: String) {
-        _lookupQuery.value = phone
-        _isBusinessLookupMode.value = false
-        _activeScreen.value = DashboardCardId.NUMBER_LOOKUP
-        lookupPhoneNumber(phone, businessMode = false)
-    }
-
-    fun scanPhotoUri(uri: Uri) {
-        _selectedPhotoUri.value = uri
-        viewModelScope.launch {
-            _photoState.value = AsyncUiState.Loading("Running on-device ML Kit OCR to extract text & phone numbers...")
-            try {
-                val ocr = OnDeviceOcrScanner.scanUri(
-                    context = getApplication(),
-                    uri = uri,
-                    defaultRegion = _selectedRegion.value
-                )
-                cachedScaledBitmap = ocr.scaledBitmap
-                cachedOcrText = ocr.rawText
-                cachedOcrPhones = ocr.extractedPhoneNumbers
-
-                val acquired = rateLimiter.tryAcquire()
-                if (acquired.isFailure) {
-                    _photoState.value = AsyncUiState.Error(
-                        acquired.exceptionOrNull()?.message ?: "Rate limit exceeded.",
-                        isRateLimited = true
-                    )
-                    return@launch
-                }
-
-                _photoState.value = AsyncUiState.Loading("Running HTTPS AI image & object analysis (no facial ID)...")
-                val report = aiService.analyzePhoto(
-                    bitmap = ocr.scaledBitmap,
-                    ocrText = ocr.rawText,
-                    ocrPhones = ocr.extractedPhoneNumbers
-                )
-                _photoState.value = AsyncUiState.Success(report)
-                _attachedContextSummary.value =
-                    "Photo Scan Summary: ${report.imageDescription}\nExtracted Numbers: ${report.extractedPhoneNumbers.joinToString(", ").ifBlank { "None" }}\nOCR Text: ${report.visibleTextSummary.take(250)}"
-
-                if (localPrefs.value.saveSearchHistory) {
-                    historyRepo.saveRecord(
-                        recordType = HistoryRecordType.PHOTO,
-                        title = "AI Photo Scan (${report.extractedPhoneNumbers.size} numbers)",
-                        subtitle = report.detectedObjects.take(3).joinToString(", ").ifBlank { "Image OCR" },
-                        riskLevel = "Info",
-                        riskScore = 0,
-                        summaryText = "${report.imageDescription}\nNumbers: ${report.extractedPhoneNumbers.joinToString(", ").ifBlank { "None" }}",
-                        sourceAttribution = report.sourceAttribution
+            "⌫" -> {
+                if (current.expression.isNotEmpty()) {
+                    val nextExpr = current.expression.dropLast(1)
+                    _calcState.value = current.copy(
+                        expression = nextExpr,
+                        preview = CalculatorEngine.tryPreview(nextExpr),
+                        hasEvaluated = false,
+                        errorText = null
                     )
                 }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.e(TAG, "Photo analysis failed", e)
-                _photoState.value = AsyncUiState.Error(
-                    e.localizedMessage ?: "Photo analysis failed. Please try another image."
-                )
             }
-        }
-    }
-
-    fun updateSpamInput(value: String) {
-        _spamInput.value = value
-    }
-
-    fun analyzeSpamMessage(inputType: String = "Suspicious Message / Number") {
-        val text = _spamInput.value.trim()
-        if (text.isBlank()) {
-            _spamState.value = AsyncUiState.Error("Paste a suspicious SMS, WhatsApp message, URL, or phone number to analyze.")
-            return
-        }
-        val acquired = rateLimiter.tryAcquire()
-        if (acquired.isFailure) {
-            _spamState.value = AsyncUiState.Error(
-                acquired.exceptionOrNull()?.message ?: "Rate limit active.",
-                isRateLimited = true
-            )
-            return
-        }
-
-        viewModelScope.launch {
-            _spamState.value = AsyncUiState.Loading("Inspecting phishing cues, urgency triggers & fraud patterns...")
-            try {
-                val report = aiService.analyzeSpamOrMessage(inputType, text)
-                _spamState.value = AsyncUiState.Success(report)
-                _attachedContextSummary.value =
-                    "Spam Scan [${report.scamCategory}] Risk: ${report.riskLevel} (${report.spamRiskScore}/100)\n${report.explanationEn}"
-
-                if (localPrefs.value.saveSearchHistory) {
-                    historyRepo.saveRecord(
-                        recordType = HistoryRecordType.SPAM,
-                        title = report.scamCategory,
-                        subtitle = report.inputPreview,
-                        riskLevel = report.riskLevel,
-                        riskScore = report.spamRiskScore,
-                        summaryText = "${report.explanationEn}\n\n${report.explanationHi}",
-                        sourceAttribution = report.sourceAttribution
-                    )
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.e(TAG, "Spam analysis failed", e)
-                _spamState.value = AsyncUiState.Error(
-                    e.localizedMessage ?: "Could not analyze message for spam."
-                )
+            "=" -> evaluateCurrentExpression()
+            "±" -> toggleSign()
+            "( )" -> insertParenthesis()
+            "MC" -> {
+                _calcState.value = current.copy(memoryValue = 0.0)
+                emitToast("Memory cleared")
             }
+            "MR" -> {
+                val formatted = CalculatorEngine.formatNumber(current.memoryValue)
+                appendToken(formatted)
+            }
+            "M+" -> {
+                val activeVal = currentNumericValue()
+                _calcState.value = current.copy(memoryValue = current.memoryValue + activeVal)
+                emitToast("Added to Memory")
+            }
+            "M-" -> {
+                val activeVal = currentNumericValue()
+                _calcState.value = current.copy(memoryValue = current.memoryValue - activeVal)
+                emitToast("Subtracted from Memory")
+            }
+            else -> appendToken(key)
         }
     }
 
-    fun sendChatMessage(prompt: String, includeAttachedContext: Boolean = true) {
-        val trimmed = prompt.trim()
-        if (trimmed.isBlank() || _isChatStreaming.value) return
-
-        val acquired = rateLimiter.tryAcquire()
-        if (acquired.isFailure) {
-            emitToast(acquired.exceptionOrNull()?.message ?: "Rate limit exceeded.")
-            return
+    private fun appendToken(token: String) {
+        val current = _calcState.value
+        val isOperator = token in listOf("+", "−", "×", "÷", "%")
+        val baseExpr = if (current.hasEvaluated) {
+            if (isOperator) current.result else ""
+        } else {
+            current.expression
         }
 
-        val userMsg = ChatMessage(
-            id = UUID.randomUUID().toString(),
-            isUser = true,
-            text = trimmed
+        val nextExpr = if (isOperator && baseExpr.isEmpty() && token != "−") {
+            "0$token"
+        } else if (isOperator && baseExpr.isNotEmpty() && baseExpr.last().toString() in listOf("+", "−", "×", "÷")) {
+            baseExpr.dropLast(1) + token
+        } else {
+            baseExpr + token
+        }
+
+        _calcState.value = current.copy(
+            expression = nextExpr,
+            preview = CalculatorEngine.tryPreview(nextExpr),
+            hasEvaluated = false,
+            errorText = null
         )
-        val assistantMsgId = UUID.randomUUID().toString()
-        val placeholderMsg = ChatMessage(
-            id = assistantMsgId,
-            isUser = false,
-            text = "",
-            isStreaming = true,
-            confidenceTag = "Analyzing...",
-            sourceTag = "Firebase AI Logic • Gemini 3.8 Flash"
+    }
+
+    private fun insertParenthesis() {
+        val expr = _calcState.value.expression
+        val openCount = expr.count { it == '(' }
+        val closeCount = expr.count { it == ')' }
+        val token = if (openCount > closeCount && expr.isNotEmpty() && (expr.last().isDigit() || expr.last() == ')')) {
+            ")"
+        } else if (expr.isNotEmpty() && (expr.last().isDigit() || expr.last() == ')')) {
+            "×("
+        } else {
+            "("
+        }
+        appendToken(token)
+    }
+
+    private fun toggleSign() {
+        val current = _calcState.value
+        val expr = current.expression
+        if (expr.isEmpty()) {
+            appendToken("−")
+            return
+        }
+        val toggled = if (expr.startsWith("−")) expr.drop(1) else "−$expr"
+        _calcState.value = current.copy(
+            expression = toggled,
+            preview = CalculatorEngine.tryPreview(toggled),
+            hasEvaluated = false,
+            errorText = null
         )
+    }
 
-        val priorHistory: List<Content> = _chatMessages.value
-            .filter { it.id != "welcome" && it.text.isNotBlank() }
-            .takeLast(8)
-            .map { msg ->
-                content(if (msg.isUser) "user" else "model") { text(msg.text) }
+    private fun evaluateCurrentExpression() {
+        val current = _calcState.value
+        val expr = current.expression.ifBlank { current.result }
+        when (val eval = CalculatorEngine.evaluate(expr)) {
+            is CalculatorEngine.EvalResult.Success -> {
+                _calcState.value = current.copy(
+                    expression = expr,
+                    result = eval.formatted,
+                    preview = null,
+                    hasEvaluated = true,
+                    errorText = null
+                )
+                if (expr.any { it in listOf('+', '−', '×', '÷', '%', '*', '/') }) {
+                    saveCalculationRecord(CalcRecordCategory.STANDARD, expr, eval.formatted)
+                }
             }
-
-        _chatMessages.value = _chatMessages.value + userMsg + placeholderMsg
-        _isChatStreaming.value = true
-
-        viewModelScope.launch {
-            try {
-                val contextStr = if (includeAttachedContext) _attachedContextSummary.value else null
-                aiService.streamAssistantReply(
-                    userMessage = trimmed,
-                    historyContent = priorHistory,
-                    preferredLanguage = localPrefs.value.language,
-                    attachedContext = contextStr
-                ).collect { partial ->
-                    _chatMessages.value = _chatMessages.value.map { msg ->
-                        if (msg.id == assistantMsgId) {
-                            msg.copy(text = partial, isStreaming = true)
-                        } else msg
-                    }
-                }
-                _chatMessages.value = _chatMessages.value.map { msg ->
-                    if (msg.id == assistantMsgId) {
-                        msg.copy(isStreaming = false, confidenceTag = "Verified AI")
-                    } else msg
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.e(TAG, "Chat streaming failed", e)
-                _chatMessages.value = _chatMessages.value.map { msg ->
-                    if (msg.id == assistantMsgId) {
-                        msg.copy(
-                            text = "Error: ${e.localizedMessage ?: "Unable to reach Firebase AI Logic."}",
-                            isStreaming = false,
-                            confidenceTag = "Error"
-                        )
-                    } else msg
-                }
-            } finally {
-                _isChatStreaming.value = false
+            is CalculatorEngine.EvalResult.Error -> {
+                _calcState.value = current.copy(errorText = eval.message)
             }
         }
     }
 
-    fun openAssistantWithContext(prompt: String, contextText: String) {
-        _attachedContextSummary.value = contextText
-        _activeScreen.value = DashboardCardId.AI_ASSISTANT
-        sendChatMessage(prompt, includeAttachedContext = true)
+    private fun currentNumericValue(): Double {
+        val current = _calcState.value
+        val expr = current.expression
+        if (expr.isNotEmpty()) {
+            val eval = CalculatorEngine.evaluate(expr)
+            if (eval is CalculatorEngine.EvalResult.Success) return eval.value
+        }
+        return current.result.toDoubleOrNull() ?: 0.0
     }
 
-    fun deleteHistoryRecord(id: String) {
+    fun loadHistoryIntoCalculator(expression: String, result: String) {
+        _calcState.value = _calcState.value.copy(
+            expression = expression,
+            result = result,
+            preview = null,
+            hasEvaluated = true,
+            errorText = null
+        )
+        navigateToRootTab(AppDestination.Calculator)
+    }
+
+    fun saveCalculationRecord(category: CalcRecordCategory, expression: String, result: String) {
         viewModelScope.launch {
-            historyRepo.deleteRecord(id)
-            emitToast("Search record deleted from encrypted vault.")
+            repository.saveCalculation(category, expression, result)
         }
     }
 
-    fun clearAllHistory() {
+    fun deleteCalcHistory(id: Long) {
+        viewModelScope.launch { repository.deleteCalculation(id) }
+    }
+
+    fun clearCalcHistory() {
         viewModelScope.launch {
-            historyRepo.clearAll()
-            emitToast("All local search history cleared.")
+            repository.clearCalculationHistory()
+            emitToast("Calculation history cleared")
         }
     }
 
-    fun exportAndSharePdf(
-        context: Context,
-        title: String,
-        records: List<SearchHistoryRecord>
+    // --- Hisab-Kitab & Customer Ledger ---
+
+    fun observeCustomerTransactions(customerId: Long) =
+        repository.observeCustomerTransactions(customerId)
+
+    fun addCustomer(
+        name: String,
+        phone: String,
+        notes: String,
+        openingAmount: Double,
+        openingType: TransactionType
     ) {
+        if (name.isBlank()) {
+            emitToast("Please enter a customer name")
+            return
+        }
         viewModelScope.launch {
-            try {
-                val file = KaranPdfExporter.exportRecordsToPdf(context, title, records)
-                KaranPdfExporter.sharePdfFile(context, file, title)
-                emitToast("PDF report ready to share.")
-            } catch (e: Exception) {
-                Log.e(TAG, "PDF export failed", e)
-                emitToast("PDF export failed: ${e.localizedMessage ?: "Unknown error"}")
-            }
+            repository.addCustomer(name, phone, notes, openingAmount, openingType)
+            emitToast("Customer \"$name\" added")
         }
     }
 
-    fun exportCurrentLookupPdf(context: Context, report: NumberLookupReport) {
-        val record = SearchHistoryRecord(
-            id = "temp",
-            recordType = if (report.isBusinessMode) HistoryRecordType.BUSINESS else HistoryRecordType.NUMBER,
-            title = report.validation.internationalFormat,
-            subtitle = "${report.publicCallerOrBusinessName} (${report.validation.countryName})",
-            riskLevel = report.riskLevel,
-            riskScore = report.spamRiskScore,
-            summaryText = buildString {
-                appendLine("E.164: ${report.validation.e164Format}")
-                appendLine("Type: ${report.validation.numberType}")
-                appendLine("Category: ${report.entityCategory}")
-                appendLine("Carrier Note: ${report.carrierNetworkNote}")
-                appendLine("Summary (EN): ${report.summaryEn}")
-                appendLine("Summary (HI): ${report.summaryHi}")
-            },
-            sourceAttribution = report.sourceAttribution,
-            createdAtMillis = report.analyzedAtMillis
-        )
-        exportAndSharePdf(context, "Number Verification Report", listOf(record))
+    fun deleteCustomer(customerId: Long) {
+        viewModelScope.launch {
+            repository.deleteCustomer(customerId)
+            emitToast("Customer removed")
+        }
     }
 
-    fun refreshRateLimiter() {
-        rateLimiter.refreshStatus()
+    fun addLedgerTransaction(
+        customerId: Long,
+        type: TransactionType,
+        amount: Double,
+        note: String,
+        expression: String = ""
+    ) {
+        if (amount <= 0.0) {
+            emitToast("Enter an amount greater than 0")
+            return
+        }
+        viewModelScope.launch {
+            repository.addTransaction(customerId, type, amount, note, expression)
+            emitToast("${type.label} saved")
+        }
+    }
+
+    fun deleteLedgerTransaction(transactionId: Long) {
+        viewModelScope.launch {
+            repository.deleteTransaction(transactionId)
+            emitToast("Entry deleted")
+        }
+    }
+
+    // --- SMS Composer & Zero-Permission Handoff ---
+
+    fun prepareSmsForCalculation(expression: String, result: String) {
+        val symbol = prefs.value.currency.symbol
+        val sig = prefs.value.businessSignature
+        val body = buildString {
+            append("Calculation Summary:\n")
+            if (expression.isNotBlank()) append("$expression = $result\n")
+            else append("Total Amount: $symbol$result\n")
+            append("Sent via Simple SMS Calculator ($sig)")
+        }
+        _smsDraft.value = _smsDraft.value.copy(
+            amountText = result,
+            templateIndex = 3,
+            messageBody = body
+        )
+        navigateToRootTab(AppDestination.SmsCenter)
+    }
+
+    fun prepareSmsForCustomer(customer: CustomerSummary, templateIndex: Int = 0) {
+        val symbol = prefs.value.currency.symbol
+        val sig = prefs.value.businessSignature
+        val body = buildCustomerTemplateMessage(
+            customerName = customer.name,
+            netBalance = customer.netBalance,
+            totalJama = customer.totalJama,
+            totalUdhaar = customer.totalUdhaar,
+            templateIndex = templateIndex,
+            currencySymbol = symbol,
+            signature = sig
+        )
+        _smsDraft.value = SmsDraftState(
+            recipientName = customer.name,
+            recipientPhone = customer.phone,
+            amountText = CalculatorEngine.formatNumber(kotlin.math.abs(customer.netBalance)),
+            templateIndex = templateIndex,
+            messageBody = body
+        )
+        navigateToRootTab(AppDestination.SmsCenter)
+    }
+
+    fun updateSmsDraft(
+        recipientName: String? = null,
+        recipientPhone: String? = null,
+        amountText: String? = null,
+        templateIndex: Int? = null,
+        messageBody: String? = null
+    ) {
+        val current = _smsDraft.value
+        _smsDraft.value = current.copy(
+            recipientName = recipientName ?: current.recipientName,
+            recipientPhone = recipientPhone ?: current.recipientPhone,
+            amountText = amountText ?: current.amountText,
+            templateIndex = templateIndex ?: current.templateIndex,
+            messageBody = messageBody ?: current.messageBody
+        )
+    }
+
+    fun applySmsTemplate(templateIndex: Int, selectedCustomer: CustomerSummary?) {
+        val symbol = prefs.value.currency.symbol
+        val sig = prefs.value.businessSignature
+        val draft = _smsDraft.value
+        val name = selectedCustomer?.name ?: draft.recipientName.ifBlank { "Customer" }
+        val amount = draft.amountText.toDoubleOrNull()
+            ?: selectedCustomer?.netBalance
+            ?: 0.0
+        val body = buildCustomerTemplateMessage(
+            customerName = name,
+            netBalance = amount,
+            totalJama = selectedCustomer?.totalJama ?: 0.0,
+            totalUdhaar = selectedCustomer?.totalUdhaar ?: amount,
+            templateIndex = templateIndex,
+            currencySymbol = symbol,
+            signature = sig
+        )
+        _smsDraft.value = draft.copy(templateIndex = templateIndex, messageBody = body)
+    }
+
+    fun buildCustomerTemplateMessage(
+        customerName: String,
+        netBalance: Double,
+        totalJama: Double,
+        totalUdhaar: Double,
+        templateIndex: Int,
+        currencySymbol: String,
+        signature: String
+    ): String {
+        val absStr = CalculatorEngine.formatCurrency(kotlin.math.abs(netBalance), currencySymbol)
+        val jamaStr = CalculatorEngine.formatCurrency(totalJama, currencySymbol)
+        val udhaarStr = CalculatorEngine.formatCurrency(totalUdhaar, currencySymbol)
+        return when (templateIndex) {
+            0 -> "Namaste $customerName ji, your current Hisab balance of $absStr is pending. Kindly settle at your convenience. Thank you! - $signature"
+            1 -> "Thank you $customerName ji! Payment (Jama) of $absStr has been received and updated in your ledger. Total Jama: $jamaStr. - $signature"
+            2 -> "Hisab Summary for $customerName:\nTotal Udhaar: $udhaarStr\nTotal Jama: $jamaStr\nNet Balance: $absStr\nRegards, $signature"
+            else -> "Estimate / Calculation for $customerName: Total Amount $absStr. Sent from Simple SMS Calculator - $signature"
+        }
+    }
+
+    fun launchSmsIntent(context: Context, phone: String, message: String, recipientName: String, templateName: String) {
+        if (message.isBlank()) {
+            emitToast("Enter an SMS message first")
+            return
+        }
+        viewModelScope.launch {
+            repository.saveSmsLog(recipientName, phone, message, templateName)
+        }
+        val cleanPhone = phone.trim()
+        val uri = Uri.parse("smsto:${Uri.encode(cleanPhone)}")
+        val smsIntent = Intent(Intent.ACTION_SENDTO, uri).apply {
+            putExtra("sms_body", message)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val launched = runCatching {
+            context.startActivity(smsIntent)
+            true
+        }.getOrDefault(false)
+
+        if (!launched) {
+            sharePlainText(context, message, "Send SMS")
+        }
+    }
+
+    fun deleteSmsLog(id: Long) {
+        viewModelScope.launch { repository.deleteSmsLog(id) }
+    }
+
+    fun clearSmsLogs() {
+        viewModelScope.launch {
+            repository.clearSmsLogs()
+            emitToast("SMS log cleared")
+        }
+    }
+
+    // --- Utility Helpers (Clipboard, Share, Dial, PDF Export) ---
+
+    fun copyToClipboard(context: Context, label: String, text: String) {
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        cm?.setPrimaryClip(ClipData.newPlainText(label, text))
+        emitToast("Copied to clipboard")
+    }
+
+    fun sharePlainText(context: Context, text: String, chooserTitle: String = "Share Calculation") {
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        val chooser = Intent.createChooser(sendIntent, chooserTitle).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        runCatching { context.startActivity(chooser) }
+    }
+
+    fun dialPhone(context: Context, phone: String) {
+        if (phone.isBlank()) {
+            emitToast("No phone number saved for this customer")
+            return
+        }
+        val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${Uri.encode(phone.trim())}")).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        runCatching { context.startActivity(dialIntent) }
+            .onFailure { emitToast("No dialer app available") }
+    }
+
+    fun exportAndSharePdfReport(context: Context) {
+        viewModelScope.launch {
+            val file = withContext(Dispatchers.IO) {
+                LedgerPdfExporter.exportFullLedgerReport(
+                    context = context,
+                    metrics = dashboardMetrics.value,
+                    customers = customerSummaries.value,
+                    recentTransactions = recentTransactions.value,
+                    currencySymbol = prefs.value.currency.symbol,
+                    businessSignature = prefs.value.businessSignature
+                )
+            }
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(shareIntent, "Share Hisab-Kitab PDF Report").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            runCatching { context.startActivity(chooser) }
+                .onSuccess { emitToast("PDF report ready") }
+                .onFailure { emitToast("PDF saved to exports cache") }
+        }
     }
 
     fun emitToast(message: String) {
         _toastMessages.tryEmit(message)
-    }
-
-    private fun buildNumberContextString(report: NumberLookupReport): String {
-        return buildString {
-            appendLine("Number: ${report.validation.internationalFormat} (${report.validation.countryName}, ${report.validation.numberType})")
-            appendLine("Public Entity: ${report.publicCallerOrBusinessName} [${report.entityCategory}]")
-            appendLine("Risk: ${report.riskLevel} (${report.spamRiskScore}/100)")
-            appendLine("Summary: ${report.summaryEn}")
-        }
     }
 }

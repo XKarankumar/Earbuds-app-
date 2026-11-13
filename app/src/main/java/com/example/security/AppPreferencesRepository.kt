@@ -6,102 +6,72 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.example.model.AppLanguage
-import com.example.model.AppThemeId
+import com.example.model.AnimationPreset
+import com.example.model.CurrencyOption
+import com.example.model.OceanEmeraldMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-private val Context.finderDataStore by preferencesDataStore(name = "karan_finder_pro_prefs")
+private val Context.smsCalcPrefs by preferencesDataStore(name = "simple_sms_calc_prefs")
 
 data class LocalAppPreferences(
-    val themeId: AppThemeId = AppThemeId.DARK_3D_GLASS,
+    val themeMode: OceanEmeraldMode = OceanEmeraldMode.DARK,
+    val animationPreset: AnimationPreset = AnimationPreset.FULL_SPRING,
     val glassIntensity: Float = 0.88f,
-    val language: AppLanguage = AppLanguage.BILINGUAL,
-    val guestModeActive: Boolean = true,
-    val saveSearchHistory: Boolean = true,
-    val pinLockEnabled: Boolean = false,
-    val encryptedPinHash: String = "",
-    val encryptedPinSalt: String = "",
-    val biometricLockEnabled: Boolean = false,
-    val cameraScanFeatureEnabled: Boolean = true
+    val hapticFeedbackEnabled: Boolean = true,
+    val currency: CurrencyOption = CurrencyOption.INR,
+    val businessSignature: String = "Hardik Kumar"
 )
 
 class AppPreferencesRepository(private val context: Context) {
 
     private object Keys {
-        val THEME_ID = stringPreferencesKey("theme_id")
+        val THEME_MODE = stringPreferencesKey("ocean_emerald_mode")
+        val ANIMATION_PRESET = stringPreferencesKey("animation_preset")
         val GLASS_INTENSITY = floatPreferencesKey("glass_intensity")
-        val LANGUAGE = stringPreferencesKey("language")
-        val GUEST_MODE = booleanPreferencesKey("guest_mode")
-        val SAVE_HISTORY = booleanPreferencesKey("save_history")
-        val PIN_ENABLED = booleanPreferencesKey("pin_enabled")
-        val PIN_HASH = stringPreferencesKey("pin_hash_enc")
-        val PIN_SALT = stringPreferencesKey("pin_salt_enc")
-        val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
-        val CAMERA_SCAN_ENABLED = booleanPreferencesKey("camera_scan_enabled")
+        val HAPTIC_ENABLED = booleanPreferencesKey("haptic_enabled")
+        val CURRENCY = stringPreferencesKey("currency_option")
+        val BUSINESS_SIGNATURE = stringPreferencesKey("business_signature")
     }
 
-    val preferencesFlow: Flow<LocalAppPreferences> = context.finderDataStore.data.map { prefs ->
-        val rawHash = prefs[Keys.PIN_HASH].orEmpty()
-        val rawSalt = prefs[Keys.PIN_SALT].orEmpty()
-        val decryptedHash = if (rawHash.isNotEmpty()) CryptoVault.decryptLocalString(rawHash).orEmpty() else ""
-        val decryptedSalt = if (rawSalt.isNotEmpty()) CryptoVault.decryptLocalString(rawSalt).orEmpty() else ""
-
+    val preferencesFlow: Flow<LocalAppPreferences> = context.smsCalcPrefs.data.map { prefs ->
         LocalAppPreferences(
-            themeId = AppThemeId.fromKey(prefs[Keys.THEME_ID]),
-            glassIntensity = prefs[Keys.GLASS_INTENSITY] ?: 0.88f,
-            language = AppLanguage.fromKey(prefs[Keys.LANGUAGE]),
-            guestModeActive = prefs[Keys.GUEST_MODE] ?: true,
-            saveSearchHistory = prefs[Keys.SAVE_HISTORY] ?: true,
-            pinLockEnabled = prefs[Keys.PIN_ENABLED] ?: false,
-            encryptedPinHash = decryptedHash,
-            encryptedPinSalt = decryptedSalt,
-            biometricLockEnabled = prefs[Keys.BIOMETRIC_ENABLED] ?: false,
-            cameraScanFeatureEnabled = prefs[Keys.CAMERA_SCAN_ENABLED] ?: true
+            themeMode = OceanEmeraldMode.fromKey(prefs[Keys.THEME_MODE]),
+            animationPreset = AnimationPreset.fromKey(prefs[Keys.ANIMATION_PRESET]),
+            glassIntensity = (prefs[Keys.GLASS_INTENSITY] ?: 0.88f).coerceIn(0.4f, 1.0f),
+            hapticFeedbackEnabled = prefs[Keys.HAPTIC_ENABLED] ?: true,
+            currency = CurrencyOption.fromKey(prefs[Keys.CURRENCY]),
+            businessSignature = prefs[Keys.BUSINESS_SIGNATURE]?.takeIf { it.isNotBlank() } ?: "Hardik Kumar"
         )
     }
 
-    suspend fun setTheme(themeId: AppThemeId) {
-        context.finderDataStore.edit { it[Keys.THEME_ID] = themeId.name }
+    suspend fun setThemeMode(mode: OceanEmeraldMode) {
+        context.smsCalcPrefs.edit { it[Keys.THEME_MODE] = mode.name }
+    }
+
+    suspend fun setAnimationPreset(preset: AnimationPreset) {
+        context.smsCalcPrefs.edit { it[Keys.ANIMATION_PRESET] = preset.name }
     }
 
     suspend fun setGlassIntensity(value: Float) {
-        context.finderDataStore.edit { it[Keys.GLASS_INTENSITY] = value.coerceIn(0.35f, 1.0f) }
+        context.smsCalcPrefs.edit { it[Keys.GLASS_INTENSITY] = value.coerceIn(0.4f, 1.0f) }
     }
 
-    suspend fun setLanguage(language: AppLanguage) {
-        context.finderDataStore.edit { it[Keys.LANGUAGE] = language.name }
+    suspend fun setHapticFeedback(enabled: Boolean) {
+        context.smsCalcPrefs.edit { it[Keys.HAPTIC_ENABLED] = enabled }
     }
 
-    suspend fun setSaveSearchHistory(enabled: Boolean) {
-        context.finderDataStore.edit { it[Keys.SAVE_HISTORY] = enabled }
+    suspend fun setCurrency(option: CurrencyOption) {
+        context.smsCalcPrefs.edit { it[Keys.CURRENCY] = option.name }
     }
 
-    suspend fun setPinCode(pin: String) {
-        val (hashB64, saltB64) = CryptoVault.hashPinWithSalt(pin)
-        val encHash = CryptoVault.encryptLocalString(hashB64)
-        val encSalt = CryptoVault.encryptLocalString(saltB64)
-        context.finderDataStore.edit {
-            it[Keys.PIN_ENABLED] = true
-            it[Keys.PIN_HASH] = encHash
-            it[Keys.PIN_SALT] = encSalt
+    suspend fun setBusinessSignature(signature: String) {
+        context.smsCalcPrefs.edit {
+            it[Keys.BUSINESS_SIGNATURE] = signature.trim().ifBlank { "Hardik Kumar" }
         }
     }
 
-    suspend fun disablePinCode() {
-        context.finderDataStore.edit {
-            it[Keys.PIN_ENABLED] = false
-            it[Keys.PIN_HASH] = ""
-            it[Keys.PIN_SALT] = ""
-            it[Keys.BIOMETRIC_ENABLED] = false
-        }
-    }
-
-    suspend fun setBiometricEnabled(enabled: Boolean) {
-        context.finderDataStore.edit { it[Keys.BIOMETRIC_ENABLED] = enabled }
-    }
-
-    suspend fun setCameraScanEnabled(enabled: Boolean) {
-        context.finderDataStore.edit { it[Keys.CAMERA_SCAN_ENABLED] = enabled }
+    suspend fun resetDefaults() {
+        context.smsCalcPrefs.edit { it.clear() }
     }
 }

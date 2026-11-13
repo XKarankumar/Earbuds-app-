@@ -6,12 +6,20 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [SearchHistoryEntity::class],
-    version = 2,
+    entities = [
+        CustomerEntity::class,
+        LedgerTransactionEntity::class,
+        CalcHistoryEntity::class,
+        SmsLogEntity::class
+    ],
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun searchHistoryDao(): SearchHistoryDao
+    abstract fun customerDao(): CustomerDao
+    abstract fun ledgerDao(): LedgerDao
+    abstract fun calcHistoryDao(): CalcHistoryDao
+    abstract fun smsLogDao(): SmsLogDao
 
     companion object {
         @Volatile
@@ -22,7 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "karan_finder_vault.db"
+                    "simple_sms_calculator.db"
                 )
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()

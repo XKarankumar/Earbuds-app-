@@ -1,15 +1,17 @@
 <resources>
-    <string name="app_name">Karan Number Finder Pro AI</string>
+    <string name="app_name">Simple SMS Calculator</string>
+    <string name="theme_title">Ocean Emerald 3.5</string>
     <string name="brand_owner">Hardik Kumar</string>
-    <string name="brand_version">1.0</string>
     <string name="brand_copyright">© 2026 Hardik Kumar. All Rights Reserved.</string>
-    <string name="cd_app_logo">Karan Number Finder Pro AI shield logo</string>
-    <string name="cd_hero_banner">Karan Number Finder Pro AI glassmorphic security artwork</string>
+    <string name="cd_hero_banner">Ocean Emerald 3.5 glassmorphism hero banner</string>
     <string name="cd_back">Navigate back</string>
-    <string name="cd_close">Close</string>
-    <string name="cd_theme_toggle">Switch Dark 3D Glass and White Glass theme</string>
-    <string name="cd_delete_record">Delete search record</string>
-    <string name="cd_export_pdf">Export report as PDF</string>
-    <string name="cd_share_report">Share report</string>
-    <string name="cd_lock_app">Lock local vault</string>
+    <string name="cd_copy_result">Copy calculation result</string>
+    <string name="cd_share_result">Share calculation result</string>
+    <string name="cd_send_sms">Send via SMS</string>
+    <string name="cd_theme_toggle">Toggle Ocean Emerald Dark and Light theme</string>
+    <string name="cd_swap_units">Swap conversion units</string>
+    <string name="cd_export_pdf">Export PDF report</string>
+    <string name="cd_delete_item">Delete item</string>
+    <string name="cd_add_customer">Add customer</string>
+    <string name="cd_call_customer">Call customer</string>
 </resources>

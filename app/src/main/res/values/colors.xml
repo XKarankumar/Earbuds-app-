@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="splash_bg">#070B14</color>
+    <!-- Ocean Emerald 3.5 Core Palette -->
+    <color name="deep_ocean_blue">#071B33</color>
+    <color name="ocean_blue">#0878D1</color>
+    <color name="emerald_green">#00A878</color>
+    <color name="mint_green">#69E6B4</color>
+    <color name="glass_white">#F5FFFC</color>
+    <color name="splash_bg">#071B33</color>
 </resources>

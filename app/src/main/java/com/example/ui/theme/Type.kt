@@ -29,18 +29,26 @@ val JetBrainsMonoFamily = FontFamily(
 )
 
 val Typography = Typography(
+    displayLarge = TextStyle(
+        fontFamily = JetBrainsMonoFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 42.sp,
+        lineHeight = 48.sp,
+        letterSpacing = (-1.0).sp,
+        fontFeatureSettings = "tnum"
+    ),
     displaySmall = TextStyle(
         fontFamily = PlusJakartaFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Bold,
         fontSize = 30.sp,
-        lineHeight = 35.sp,
+        lineHeight = 36.sp,
         letterSpacing = (-0.8).sp,
     ),
     headlineMedium = TextStyle(
         fontFamily = PlusJakartaFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 25.sp,
-        lineHeight = 31.sp,
+        fontSize = 24.sp,
+        lineHeight = 30.sp,
         letterSpacing = (-0.5).sp,
     ),
     headlineSmall = TextStyle(
@@ -79,8 +87,14 @@ val Typography = Typography(
     bodyMedium = TextStyle(
         fontFamily = InterFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 13.sp,
+        fontSize = 13.5.sp,
         lineHeight = 19.sp,
+    ),
+    bodySmall = TextStyle(
+        fontFamily = InterFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
     ),
     labelLarge = TextStyle(
         fontFamily = InterFamily,
@@ -92,15 +106,15 @@ val Typography = Typography(
     labelMedium = TextStyle(
         fontFamily = JetBrainsMonoFamily,
         fontWeight = FontWeight.Medium,
-        fontSize = 11.5.sp,
+        fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp,
+        letterSpacing = 0.4.sp,
     ),
     labelSmall = TextStyle(
         fontFamily = JetBrainsMonoFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 10.5.sp,
         lineHeight = 14.sp,
-        letterSpacing = 1.1.sp,
+        letterSpacing = 0.9.sp,
     ),
 )

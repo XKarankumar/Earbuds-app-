@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/ic_karan_finder_fg_1794567636995"
+        android:drawable="@drawable/ic_ocean_emerald_fg_clean"
         android:gravity="center" />
 </layer-list>

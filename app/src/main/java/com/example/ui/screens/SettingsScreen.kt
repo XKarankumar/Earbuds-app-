@@ -1,8 +1,8 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,33 +13,26 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Api
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Policy
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Animation
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,17 +40,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
-import com.example.model.AppLanguage
-import com.example.model.AppThemeId
-import com.example.ui.components.GlassCard
-import com.example.ui.theme.AppThemes
+import com.example.model.AnimationPreset
+import com.example.model.CurrencyOption
+import com.example.model.OceanEmeraldMode
+import com.example.ui.components.OceanGlassCard
+import com.example.ui.components.OceanPillBadge
+import com.example.ui.components.OceanTopBar
+import com.example.ui.theme.LocalOceanPalette
+import com.example.ui.theme.OceanEmeraldColors
 import com.example.ui.viewmodel.MainViewModel
 
 @Composable
@@ -65,285 +61,254 @@ fun SettingsScreen(
     viewModel: MainViewModel,
     onBack: () -> Unit
 ) {
-    BackHandler(onBack = onBack)
+    BackHandler { onBack() }
 
-    val prefs by viewModel.localPrefs.collectAsStateWithLifecycle()
-    var showPrivacyDialog by remember { mutableStateOf(false) }
-    var showApiDocsDialog by remember { mutableStateOf(false) }
+    val prefs by viewModel.prefs.collectAsStateWithLifecycle()
+    val palette = LocalOceanPalette.current
+    var signatureInput by remember(prefs.businessSignature) { mutableStateOf(prefs.businessSignature) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .widthIn(max = 920.dp)
-            .padding(horizontal = 16.dp)
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.testTag("btn_back_settings")
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
-            }
-            Spacer(Modifier.width(6.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Settings & Documentation",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Dark 3D Glass • White Glass • Privacy Policy • API Docs",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            modifier = Modifier
+                .widthIn(max = 680.dp)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Theme Selector
             item {
-                GlassCard(elevated = true) {
+                OceanTopBar(
+                    title = "Settings & Theme",
+                    subtitle = "Ocean Emerald 3.5 • Saved locally offline",
+                    onBack = onBack,
+                    backTestTag = "btn_back_settings"
+                )
+            }
+
+            // Light & Dark Theme Variations
+            item {
+                OceanGlassCard(modifier = Modifier.fillMaxWidth(), elevated = true) {
+                    Text(
+                        text = "Ocean Emerald 3.5 Variation",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Switch smoothly between Deep Ocean Dark and Glass White Light variations.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(10.dp))
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text(
-                            text = "Glass Interface Theme",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        OceanEmeraldMode.entries.forEach { mode ->
+                            val selected = prefs.themeMode == mode
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (selected) OceanEmeraldColors.OceanBlue.copy(alpha = 0.22f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                border = BorderStroke(
+                                    width = if (selected) 1.6.dp else 1.dp,
+                                    color = if (selected) OceanEmeraldColors.MintGreen else MaterialTheme.colorScheme.outline
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("theme_mode_${mode.name.lowercase()}")
+                                    .clickable { viewModel.setThemeMode(mode) }
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Icon(
+                                        imageVector = if (mode.isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
+                                        contentDescription = mode.label,
+                                        tint = if (selected) palette.jamaAccent else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = if (mode.isDark) "Dark Ocean" else "Glass Light",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = if (mode.isDark) "#071B33 Base" else "#F5FFFC Base",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     }
-                    Spacer(Modifier.height(12.dp))
+
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        text = "Glass Opacity & Frost (${(prefs.glassIntensity * 100).toInt()}%)",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Slider(
+                        value = prefs.glassIntensity,
+                        onValueChange = viewModel::setGlassIntensity,
+                        valueRange = 0.45f..1.0f
+                    )
+                }
+            }
+
+            // Adjustable Animation Settings
+            item {
+                OceanGlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Animation,
+                            contentDescription = "Animation settings",
+                            tint = palette.jamaAccent
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Animation Settings", style = MaterialTheme.typography.titleMedium)
+                    }
+                    Spacer(Modifier.height(10.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AppThemeId.entries.forEach { themeId ->
-                            val selected = prefs.themeId == themeId
-                            val palette = AppThemes.glassPaletteFor(themeId)
-                            GlassCard(
-                                onClick = { viewModel.setTheme(themeId) },
-                                contentPadding = PaddingValues(12.dp),
+                        AnimationPreset.entries.forEach { preset ->
+                            val selected = prefs.animationPreset == preset
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (selected) OceanEmeraldColors.EmeraldGreen.copy(alpha = 0.18f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (selected) OceanEmeraldColors.MintGreen else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                ),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .testTag("theme_${themeId.name.lowercase()}")
+                                    .testTag("anim_${preset.name.lowercase()}")
+                                    .clickable { viewModel.setAnimationPreset(preset) }
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            palette.swatchColors.forEach { color ->
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(16.dp)
-                                                        .clip(CircleShape)
-                                                        .background(color)
-                                                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                                                )
-                                            }
-                                        }
-                                        Column {
-                                            Text(
-                                                text = themeId.displayName,
-                                                style = MaterialTheme.typography.titleSmall,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                            Text(
-                                                text = themeId.subtitle,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                    if (selected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Selected theme",
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = preset.label,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (selected) palette.jamaAccent else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = preset.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         }
                     }
 
                     Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = "Glass Translucency Intensity (${(prefs.glassIntensity * 100).toInt()}%)",
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    Slider(
-                        value = prefs.glassIntensity,
-                        onValueChange = viewModel::setGlassIntensity,
-                        valueRange = 0.35f..1.0f
-                    )
-                }
-            }
-
-            // Language Preference
-            item {
-                GlassCard {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(Icons.Default.Language, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text(
-                            text = "AI Assistant Language",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(AppLanguage.entries) { lang ->
-                            FilterChip(
-                                selected = prefs.language == lang,
-                                onClick = { viewModel.setLanguage(lang) },
-                                label = { Text(lang.label) }
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Policy & API Documentation
-            item {
-                GlassCard {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(Icons.Default.Policy, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text(
-                            text = "Legal, Privacy & API Setup Docs",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Spacer(Modifier.height(10.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedButton(
-                            onClick = { showPrivacyDialog = true },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Icon(Icons.Default.Policy, contentDescription = null)
-                            Spacer(Modifier.width(6.dp))
-                            Text("Privacy Policy")
-                        }
-                        OutlinedButton(
-                            onClick = { showApiDocsDialog = true },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Icon(Icons.Default.Api, contentDescription = null)
-                            Spacer(Modifier.width(6.dp))
-                            Text("API Docs")
-                        }
-                    }
-                }
-            }
-
-            // Developer Branding
-            item {
-                GlassCard {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Key Haptic Feedback", style = MaterialTheme.typography.titleSmall)
                             Text(
-                                text = "Karan Number Finder Pro AI",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Version 1.0 • Developer: Hardik Kumar",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = stringResource(R.string.brand_copyright),
+                                text = "Tactile pulse on calculator button press",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        Switch(
+                            checked = prefs.hapticFeedbackEnabled,
+                            onCheckedChange = viewModel::setHapticFeedback
+                        )
                     }
                 }
             }
+
+            // Currency & SMS Signature
+            item {
+                OceanGlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Text("Currency & SMS Signature", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CurrencyOption.entries.forEach { opt ->
+                            FilterChip(
+                                selected = prefs.currency == opt,
+                                onClick = { viewModel.setCurrency(opt) },
+                                label = { Text("${opt.symbol} ${opt.code}") }
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = signatureInput,
+                        onValueChange = { signatureInput = it },
+                        label = { Text("Business / Sender Signature for SMS & PDF") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = { viewModel.setBusinessSignature(signatureInput) },
+                            colors = ButtonDefaults.buttonColors(containerColor = OceanEmeraldColors.EmeraldGreen),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Save Signature")
+                        }
+                        OutlinedButton(
+                            onClick = { viewModel.resetSettings() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Reset Defaults")
+                        }
+                    }
+                }
+            }
+
+            // Branding & Offline Ownership Card
+            item {
+                OceanGlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Verified, contentDescription = null, tint = palette.jamaAccent)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleMedium)
+                        }
+                        OceanPillBadge(text = "100% Offline", accent = OceanEmeraldColors.MintGreen)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Theme: Ocean Emerald 3.5",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Owner: ${stringResource(R.string.brand_owner)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Package: com.hardikkumar.simplesmscalculator",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(R.string.brand_copyright),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = palette.jamaAccent
+                    )
+                }
+            }
         }
-    }
-
-    if (showPrivacyDialog) {
-        AlertDialog(
-            onDismissRequest = { showPrivacyDialog = false },
-            title = { Text("Privacy Policy (DPDP Act 2023 & Play Compliant)") },
-            text = {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    Text(
-                        text = """
-                            Developer: Hardik Kumar
-                            App: Karan Number Finder Pro AI (v1.0)
-
-                            1. Zero Mandatory Login: Guest Mode works immediately with no Google account required.
-                            2. No Private Data Exposure: The app never reveals or fabricates private home addresses, Aadhaar details, bank details, private photographs, or live GPS locations.
-                            3. Zero Background Harvesting: Contacts and SMS inbox permissions are never declared or accessed. Photos are scanned only on explicit user action via Android Photo Picker or permission-gated Camera.
-                            4. Local Encryption: Saved search history is encrypted locally using Android Keystore AES-256-GCM inside Room DB and can be deleted individually or cleared at any time.
-                            5. HTTPS & App Check: AI requests travel over encrypted HTTPS protected by Firebase App Check attestation.
-                        """.trimIndent(),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showPrivacyDialog = false }) { Text("Close") }
-            }
-        )
-    }
-
-    if (showApiDocsDialog) {
-        AlertDialog(
-            onDismissRequest = { showApiDocsDialog = false },
-            title = { Text("API & Service Requirements") },
-            text = {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    Text(
-                        text = """
-                            Active Real Integrations:
-                            • Google libphonenumber (Offline ITU-T E.164 validation, country/region, calling code & number type).
-                            • Google ML Kit Text Recognition (On-device OCR text & phone extraction).
-                            • Firebase AI Logic + App Check (Gemini 3.8 Flash HTTPS inference for fraud analysis, multimodal photo description, and Hindi/English AI Assistant).
-                            • Room + Android Keystore AES-256-GCM (Encrypted local search history).
-
-                            Features Requiring Paid / External Telecom APIs:
-                            • Real-time HLR/MNP subscriber carrier status and licensed commercial caller-ID directories require an authorized paid API subscription (e.g., Twilio Lookup v2, Numverify, or Truecaller Enterprise) hosted behind your backend HTTPS proxy.
-                        """.trimIndent(),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showApiDocsDialog = false }) { Text("Close") }
-            }
-        )
     }
 }
