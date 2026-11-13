@@ -1,6 +1,6 @@
 {
-  "name": "Karan Buds Studio",
-  "description": "Bluetooth audio companion for earbuds with Battery UI, Noise Control, Equalizer, Permission Helper, and animated glass settings.",
+  "name": "CK",
+  "description": "CK – Premium Black & White + iOS Liquid Glass Bluetooth earbuds companion with automatic connection detection, brand logos, battery dashboard, firmware verification, 3D animations, and background monitoring.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

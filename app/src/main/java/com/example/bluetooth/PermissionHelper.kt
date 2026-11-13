@@ -13,7 +13,7 @@ import com.example.model.PermissionItemState
 
 object PermissionHelper {
 
-    fun requiredRuntimePermissions(): Array<String> {
+    fun requiredBluetoothPermissions(): Array<String> {
         return when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> arrayOf(
                 Manifest.permission.BLUETOOTH_CONNECT,
@@ -25,6 +25,14 @@ object PermissionHelper {
             else -> arrayOf(
                 Manifest.permission.ACCESS_COARSE_LOCATION,
             )
+        }
+    }
+
+    fun requiredNotificationPermission(): Array<String> {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            arrayOf(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            emptyArray()
         }
     }
 
@@ -61,37 +69,40 @@ object PermissionHelper {
         }
     }
 
+    fun hasNotificationPermission(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
     fun hasAllBluetoothPermissions(context: Context): Boolean {
         return hasConnectPermission(context) && hasScanPermission(context)
     }
 
     fun buildChecklist(context: Context): List<PermissionItemState> {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            listOf(
-                PermissionItemState(
-                    permission = Manifest.permission.BLUETOOTH_CONNECT,
-                    title = "Nearby Devices · Connect",
-                    description = "Reads paired earbuds, audio routing, and GATT battery level.",
-                    isGranted = hasConnectPermission(context),
-                    isRuntimeRequestable = true,
-                ),
-                PermissionItemState(
-                    permission = Manifest.permission.BLUETOOTH_SCAN,
-                    title = "Nearby Devices · Scan (No Location)",
-                    description = "Discovers nearby Bluetooth earbuds without requesting GPS location.",
-                    isGranted = hasScanPermission(context),
-                    isRuntimeRequestable = true,
-                ),
-                PermissionItemState(
-                    permission = Manifest.permission.MODIFY_AUDIO_SETTINGS,
-                    title = "Audio & Equalizer Control",
-                    description = "Connects studio EQ curves and Bass Boost to active playback.",
-                    isGranted = ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.MODIFY_AUDIO_SETTINGS,
-                    ) == PackageManager.PERMISSION_GRANTED,
-                    isRuntimeRequestable = false,
-                ),
+        val items = mutableListOf<PermissionItemState>()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            items += PermissionItemState(
+                permission = Manifest.permission.BLUETOOTH_CONNECT,
+                title = "Bluetooth Connect",
+                description = "Reads paired earbuds, active audio route, brand info, and GATT battery/firmware.",
+                whyNeeded = "Required on Android 12+ (including Vivo OriginOS / FuntouchOS) to read connected earbuds without crashing.",
+                isGranted = hasConnectPermission(context),
+                isRuntimeRequestable = true,
+            )
+            items += PermissionItemState(
+                permission = Manifest.permission.BLUETOOTH_SCAN,
+                title = "Nearby Devices · Scan",
+                description = "Discovers nearby Bluetooth & BLE earbuds with neverForLocation privacy flag.",
+                whyNeeded = "Used only when you tap Scan Nearby so CK can list unpaired earbuds without accessing GPS.",
+                isGranted = hasScanPermission(context),
+                isRuntimeRequestable = true,
             )
         } else {
             val locationPerm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -99,33 +110,48 @@ object PermissionHelper {
             } else {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             }
-            listOf(
-                PermissionItemState(
-                    permission = Manifest.permission.BLUETOOTH,
-                    title = "Legacy Bluetooth Access",
-                    description = "Install-time access for paired audio devices on Android 11 and below.",
-                    isGranted = hasConnectPermission(context),
-                    isRuntimeRequestable = false,
-                ),
-                PermissionItemState(
-                    permission = locationPerm,
-                    title = "Bluetooth Scan Discovery",
-                    description = "Required by Android 11 and below to scan nearby BLE earbuds.",
-                    isGranted = hasScanPermission(context),
-                    isRuntimeRequestable = true,
-                ),
-                PermissionItemState(
-                    permission = Manifest.permission.MODIFY_AUDIO_SETTINGS,
-                    title = "Audio & Equalizer Control",
-                    description = "Connects studio EQ curves and Bass Boost to active playback.",
-                    isGranted = ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.MODIFY_AUDIO_SETTINGS,
-                    ) == PackageManager.PERMISSION_GRANTED,
-                    isRuntimeRequestable = false,
-                ),
+            items += PermissionItemState(
+                permission = Manifest.permission.BLUETOOTH,
+                title = "Bluetooth Access",
+                description = "Install-time access for paired audio devices on Android 11 and older.",
+                whyNeeded = "Allows CK to detect paired A2DP/HFP earbuds.",
+                isGranted = hasConnectPermission(context),
+                isRuntimeRequestable = false,
+            )
+            items += PermissionItemState(
+                permission = locationPerm,
+                title = "Nearby Scan Discovery",
+                description = "Required by Android 11 and below when scanning BLE beacons.",
+                whyNeeded = "Android 11 requires location permission for BLE scans; CK never stores coordinates.",
+                isGranted = hasScanPermission(context),
+                isRuntimeRequestable = true,
             )
         }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            items += PermissionItemState(
+                permission = Manifest.permission.POST_NOTIFICATIONS,
+                title = "Notifications & Background Monitor",
+                description = "Displays low-battery alerts, connection status, and background monitor notification.",
+                whyNeeded = "Requested only when you enable background monitoring or connection notifications on Android 13+.",
+                isGranted = hasNotificationPermission(context),
+                isRuntimeRequestable = true,
+            )
+        }
+
+        items += PermissionItemState(
+            permission = Manifest.permission.MODIFY_AUDIO_SETTINGS,
+            title = "AudioFX & Equalizer",
+            description = "Connects 5-band Equalizer and Bass Boost to Android's active audio session.",
+            whyNeeded = "Install-time permission so studio EQ curves work over Bluetooth A2DP/LE Audio.",
+            isGranted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.MODIFY_AUDIO_SETTINGS,
+            ) == PackageManager.PERMISSION_GRANTED,
+            isRuntimeRequestable = false,
+        )
+
+        return items
     }
 
     fun createEnableBluetoothIntent(): Intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
@@ -145,5 +171,14 @@ object PermissionHelper {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)
+    }
+
+    fun openUrl(context: Context, url: String) {
+        runCatching {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        }
     }
 }

@@ -1,20 +1,24 @@
 <resources>
-    <string name="app_name">Karan Buds Studio</string>
-    <string name="studio_brand">KARAN AUDIO LAB</string>
-    <string name="studio_title">Karan Buds Studio</string>
-    <string name="device_model_default">OnePlus Nord Buds 3 Pro</string>
-    <string name="version_badge">V1.0</string>
-    <string name="connect_earbuds">Connect earbuds</string>
+    <string name="app_name">CK</string>
+    <string name="ck_brand_header">CK AUDIO COMPANION</string>
+    <string name="ck_subtitle">Monochrome Liquid Glass Studio</string>
+    <string name="device_model_default">Wireless Earbuds</string>
+    <string name="version_badge">V2.0</string>
+    <string name="connect_earbuds">Connect Earbuds</string>
     <string name="disconnect_earbuds">Disconnect</string>
     <string name="bluetooth_manager_title">Bluetooth Manager</string>
-    <string name="permission_helper_title">Permission Helper</string>
+    <string name="permission_helper_title">Permission Center</string>
     <string name="noise_control_title">Noise Control</string>
     <string name="equalizer_title">Equalizer Studio</string>
-    <string name="earbud_controls_title">Earbud Controls</string>
-    <string name="device_management_title">Device Management</string>
-    <string name="about_studio_title">About Studio</string>
-    <string name="cd_hero_earbuds">Wireless earbuds in charging case</string>
-    <string name="cd_more_options">More options and studio info</string>
-    <string name="cd_permission_shield">Bluetooth permission status</string>
+    <string name="earbud_controls_title">Touch Controls</string>
+    <string name="device_management_title">Device &amp; Protocol</string>
+    <string name="firmware_center_title">Firmware Center</string>
+    <string name="customization_title">Liquid Glass &amp; Style</string>
+    <string name="about_studio_title">About CK</string>
+    <string name="cd_hero_earbuds">Monochrome wireless earbuds and charging case</string>
+    <string name="cd_more_options">About CK and protocol compatibility</string>
+    <string name="cd_permission_shield">Permissions and background monitoring status</string>
     <string name="cd_close_sheet">Close panel</string>
+    <string name="cd_customize_ui">Customize theme and liquid glass</string>
+    <string name="cd_firmware_check">Firmware update center</string>
 </resources>

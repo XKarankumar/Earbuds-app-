@@ -18,13 +18,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Equalizer
-import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Hearing
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Tune
@@ -42,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -54,8 +52,11 @@ import androidx.compose.ui.unit.dp
 import com.example.model.AncStrength
 import com.example.model.EqPreset
 import com.example.model.NoiseControlMode
-import com.example.ui.theme.StudioCobalt
-import com.example.ui.theme.StudioMint
+import com.example.ui.theme.LocalLiquidGlassStyle
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.SilverEdgeRim
+import com.example.ui.theme.SilverShadowTint
+import com.example.ui.theme.SoftSilverGradientEnd
 
 @Composable
 fun NoiseControlSection(
@@ -102,139 +103,123 @@ fun NoiseControlSection(
             )
         }
 
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 1.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    shape = RoundedCornerShape(24.dp),
-                ),
-        ) {
-            Column(
-                modifier = Modifier.padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+        LiquidGlassCard {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(onClick = onOpenNoiseSettings)
+                    .padding(vertical = 4.dp)
+                    .testTag("open_noise_settings_row"),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable(onClick = onOpenNoiseSettings)
-                        .padding(vertical = 4.dp)
-                        .testTag("open_noise_settings_row"),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column {
-                        Text(
-                            text = "Noise cancellation",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = if (mode == NoiseControlMode.ANC) {
-                                "${ancStrength.label} · Up to -${ancStrength.depthDb} dB"
-                            } else {
-                                "Currently in ${mode.label} mode"
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = if (mode == NoiseControlMode.ANC) ancStrength.label else mode.shortLabel,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Icon(
-                            imageVector = Icons.Rounded.ChevronRight,
-                            contentDescription = "Open noise control settings",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Noise control profile",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = if (mode == NoiseControlMode.ANC) {
+                            "${ancStrength.label} · Saved locally (OEM ANC requires vendor BLE)"
+                        } else {
+                            "Profile: ${mode.label} · Saved locally"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (mode == NoiseControlMode.ANC) ancStrength.label else mode.shortLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = "Open noise control settings",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                    Text(
+                        text = "Personalised ANC preference",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "Stored in CK profile for companion reference",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = personalisedAnc,
+                    onCheckedChange = onTogglePersonalisedAnc,
+                    modifier = Modifier.testTag("personalised_anc_switch"),
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                        Text(
-                            text = "Personalised noise cancellation",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = "Adaptive ear-canal seal calibration saved in studio profile",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(
-                        checked = personalisedAnc,
-                        onCheckedChange = onTogglePersonalisedAnc,
-                        modifier = Modifier.testTag("personalised_anc_switch"),
+                    Text(
+                        text = "ANC strength preset",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "${ancStrength.label} (-${ancStrength.depthDb} dB)",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = "ANC strength",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = "${ancStrength.label} (-${ancStrength.depthDb} dB)",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        AncStrength.entries.forEach { level ->
-                            val selected = level == ancStrength
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = if (selected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .minimumInteractiveComponentSize()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .clickable { onSelectStrength(level) },
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    AncStrength.entries.forEach { level ->
+                        val selected = level == ancStrength
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                SoftSilverGradientEnd.copy(alpha = 0.65f)
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .minimumInteractiveComponentSize()
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable { onSelectStrength(level) },
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(vertical = 10.dp),
                             ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.padding(vertical = 10.dp),
-                                ) {
-                                    Text(
-                                        text = level.label,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = if (selected) {
-                                            MaterialTheme.colorScheme.onPrimary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
-                                    )
-                                }
+                                Text(
+                                    text = level.label,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = if (selected) {
+                                        MaterialTheme.colorScheme.onPrimary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                )
                             }
                         }
                     }
@@ -251,12 +236,17 @@ private fun NoiseModeTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isDark = LocalLiquidGlassStyle.current.isDark
     val bgColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+        targetValue = when {
+            selected -> MaterialTheme.colorScheme.primary
+            isDark -> MaterialTheme.colorScheme.surfaceVariant
+            else -> PureWhite.copy(alpha = 0.88f)
+        },
         label = "noise_tile_bg",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
         label = "noise_tile_fg",
     )
     val scale by animateFloatAsState(
@@ -265,13 +255,22 @@ private fun NoiseModeTile(
         label = "noise_tile_scale",
     )
 
-    Surface(
-        shape = RoundedCornerShape(22.dp),
-        color = bgColor,
+    Box(
         modifier = modifier
             .scale(scale)
-            .height(98.dp)
+            .height(92.dp)
+            .shadow(
+                elevation = if (selected) 10.dp else 6.dp,
+                shape = RoundedCornerShape(22.dp),
+                ambientColor = SilverShadowTint.copy(alpha = 0.25f),
+            )
             .clip(RoundedCornerShape(22.dp))
+            .background(bgColor)
+            .border(
+                width = 1.dp,
+                color = if (selected) Color.Transparent else SilverEdgeRim,
+                shape = RoundedCornerShape(22.dp),
+            )
             .clickable(onClick = onClick),
     ) {
         Column(
@@ -289,7 +288,7 @@ private fun NoiseModeTile(
                 },
                 contentDescription = mode.label,
                 tint = contentColor,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(22.dp),
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
@@ -311,90 +310,74 @@ fun EqualizerPreviewCard(
     onOpenEqualizer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        modifier = modifier
-            .fillMaxWidth()
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(24.dp),
-            )
-            .clip(RoundedCornerShape(24.dp))
-            .clickable(onClick = onOpenEqualizer)
-            .testTag("equalizer_preview_card"),
+    LiquidGlassCard(
+        modifier = modifier.testTag("equalizer_preview_card"),
+        onClick = onOpenEqualizer,
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.size(40.dp),
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(40.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Rounded.Equalizer,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-                    Column {
-                        Text(
-                            text = "Equalizer",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = "${preset.label} · ${preset.description}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.Equalizer,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
-                Icon(
-                    imageVector = Icons.Rounded.Tune,
-                    contentDescription = "Open Equalizer Studio",
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+                Column {
+                    Text(
+                        text = "Equalizer Studio",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "${preset.label} · ${preset.description}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
-
-            FrequencyCurveCanvas(
-                bandsDb = bandsDb,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(92.dp),
+            Icon(
+                imageVector = Icons.Rounded.Tune,
+                contentDescription = "Open Equalizer Studio",
+                tint = MaterialTheme.colorScheme.primary,
             )
+        }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = hardwareStatus,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = StudioMint,
-                )
-                Text(
-                    text = "Tap to tune 5 bands ›",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
+        FrequencyCurveCanvas(
+            bandsDb = bandsDb,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(92.dp),
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = hardwareStatus,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "Tune 5 bands ›",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
@@ -404,6 +387,7 @@ fun FrequencyCurveCanvas(
     bandsDb: List<Float>,
     modifier: Modifier = Modifier,
 ) {
+    val isDark = LocalLiquidGlassStyle.current.isDark
     val animatedBands = List(5) { idx ->
         val value by animateFloatAsState(
             targetValue = bandsDb.getOrElse(idx) { 0f },
@@ -412,12 +396,16 @@ fun FrequencyCurveCanvas(
         )
         value
     }
-    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val gridColor = MaterialTheme.colorScheme.outline
+    val lineColor = MaterialTheme.colorScheme.primary
 
     Canvas(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+            .background(
+                if (isDark) Color.White.copy(alpha = 0.05f)
+                else SoftSilverGradientEnd.copy(alpha = 0.50f),
+            ),
     ) {
         val padX = 16.dp.toPx()
         val padY = 14.dp.toPx()
@@ -425,7 +413,6 @@ fun FrequencyCurveCanvas(
         val usableH = (size.height - padY * 2).coerceAtLeast(1f)
         val midY = padY + usableH / 2f
 
-        // 0 dB center line
         drawLine(
             color = gridColor,
             start = Offset(padX, midY),
@@ -461,8 +448,8 @@ fun FrequencyCurveCanvas(
             path = fillPath,
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    StudioCobalt.copy(alpha = 0.28f),
-                    StudioMint.copy(alpha = 0.08f),
+                    lineColor.copy(alpha = 0.16f),
+                    lineColor.copy(alpha = 0.03f),
                     Color.Transparent,
                 ),
             ),
@@ -470,20 +457,18 @@ fun FrequencyCurveCanvas(
 
         drawPath(
             path = linePath,
-            brush = Brush.horizontalGradient(
-                colors = listOf(StudioMint, StudioCobalt),
-            ),
-            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round),
+            color = lineColor,
+            style = Stroke(width = 2.6.dp.toPx(), cap = StrokeCap.Round),
         )
 
-        points.forEachIndexed { idx, pt ->
+        points.forEach { pt ->
             drawCircle(
-                color = Color.White,
+                color = if (isDark) Color.Black else PureWhite,
                 radius = 5.dp.toPx(),
                 center = pt,
             )
             drawCircle(
-                color = if (idx < 2) StudioMint else StudioCobalt,
+                color = lineColor,
                 radius = 3.2.dp.toPx(),
                 center = pt,
             )

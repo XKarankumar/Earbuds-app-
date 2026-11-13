@@ -36,7 +36,6 @@ import com.example.model.NoiseControlMode
 import com.example.ui.components.FrequencyCurveCanvas
 import com.example.ui.components.GlassSubCard
 import com.example.ui.theme.StatusEmerald
-import com.example.ui.theme.StudioMint
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -65,13 +64,13 @@ fun EqualizerSettingsSheetContent(
                 color = if (uiState.isHardwareEqAttached) {
                     StatusEmerald.copy(alpha = 0.16f)
                 } else {
-                    StudioMint.copy(alpha = 0.16f)
+                    MaterialTheme.colorScheme.surfaceVariant
                 },
             ) {
                 Text(
                     text = uiState.hardwareEqStatus,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (uiState.isHardwareEqAttached) StatusEmerald else StudioMint,
+                    color = if (uiState.isHardwareEqAttached) StatusEmerald else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                 )
             }
@@ -103,7 +102,7 @@ fun EqualizerSettingsSheetContent(
 
     GlassSubCard {
         Text(
-            text = "5-BAND STUDIO EQUALIZER",
+            text = "5-BAND AUDIOFX EQUALIZER",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -150,7 +149,7 @@ fun EqualizerSettingsSheetContent(
             Text(
                 text = "${(uiState.bassBoostStrength * 100).roundToInt()}%",
                 style = MaterialTheme.typography.labelMedium,
-                color = StudioMint,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
         Slider(
@@ -184,8 +183,13 @@ fun NoiseControlSettingsSheetContent(
 ) {
     GlassSubCard {
         Text(
-            text = "ACTIVE MODE",
+            text = "NOISE CONTROL PROFILE",
             style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = "Standard Bluetooth A2DP/HFP does not expose vendor ANC registers. Preferences saved here work alongside your earbuds' hardware touch/companion controls.",
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(
@@ -228,7 +232,7 @@ fun NoiseControlSettingsSheetContent(
 
     GlassSubCard {
         Text(
-            text = "ANC ATTENUATION DEPTH",
+            text = "ANC ATTENUATION TARGET",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -280,21 +284,21 @@ fun NoiseControlSettingsSheetContent(
     GlassSubCard {
         SettingsSwitchRow(
             title = "Personalised noise cancellation",
-            subtitle = "Tailors acoustic filter curve to your ear-canal fit",
+            subtitle = "Save seal calibration preference in studio profile",
             checked = uiState.personalisedAnc,
             onCheckedChange = onTogglePersonalisedAnc,
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         SettingsSwitchRow(
             title = "Wind noise reduction",
-            subtitle = "Attenuates outdoor gusts across feed-forward mics",
+            subtitle = "Prefer outdoor gust suppression profile",
             checked = uiState.windNoiseReduction,
             onCheckedChange = onToggleWindReduction,
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         SettingsSwitchRow(
             title = "Transparency voice focus",
-            subtitle = "Emphasizes vocal frequencies during ambient pass-through",
+            subtitle = "Prefer vocal clarity during ambient pass-through",
             checked = uiState.transparencyVoiceFocus,
             onCheckedChange = onToggleTransparencyVoiceFocus,
         )
@@ -309,6 +313,19 @@ fun EarbudControlsSettingsSheetContent(
     onSetTripleTap: (GestureAction) -> Unit,
     onSetPressAndHold: (GestureAction) -> Unit,
 ) {
+    GlassSubCard {
+        Text(
+            text = "TOUCH GESTURE MAP (PROFILE)",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = "Saved locally as your personal touch-map reference. Hardware gesture flashing requires each brand's proprietary BLE opcode.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+
     GesturePickerCard(
         title = "Double tap · Left earbud",
         selected = uiState.controls.doubleTapLeft,
@@ -396,21 +413,21 @@ fun DeviceManagementSheetContent(
     GlassSubCard {
         SettingsSwitchRow(
             title = "Dual connection",
-            subtitle = "Keep paired seamlessly across phone and laptop",
+            subtitle = "Track multi-point preference in your CK profile",
             checked = uiState.dualConnection,
             onCheckedChange = onToggleDualConnection,
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         SettingsSwitchRow(
             title = "In-ear wear detection",
-            subtitle = "Auto-pause playback when an earbud is removed",
+            subtitle = "Track auto-pause preference in CK profile",
             checked = uiState.inEarDetection,
             onCheckedChange = onToggleInEarDetection,
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         SettingsSwitchRow(
             title = "Low-latency game mode",
-            subtitle = "Prefer reduced audio buffer delay during gaming",
+            subtitle = "Track reduced-buffer audio preference",
             checked = uiState.lowLatencyMode,
             onCheckedChange = onToggleLowLatency,
         )
@@ -418,14 +435,28 @@ fun DeviceManagementSheetContent(
 
     GlassSubCard {
         Text(
-            text = "DEVICE TELEMETRY",
+            text = "LIVE DEVICE TELEMETRY",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        InfoLine("Model", uiState.connectedDeviceName ?: "OnePlus Nord Buds 3 Pro")
-        InfoLine("Address", uiState.connectedDeviceAddress ?: "Not paired")
-        InfoLine("Firmware", uiState.firmwareVersion ?: "Reported on GATT DIS (0x180A)")
+        InfoLine("Detected Brand", uiState.connectedBrand.displayName)
+        InfoLine("Device Name", uiState.connectedDeviceName ?: "Not connected")
+        InfoLine("MAC Address", uiState.connectedDeviceAddress ?: "—")
+        InfoLine("GATT Firmware", uiState.firmware.installedVersion ?: "Not exposed over GATT")
         InfoLine("Audio Transport", uiState.audioRouteInfo.transportType)
+    }
+
+    GlassSubCard {
+        Text(
+            text = "BRAND PROTOCOL NOTE",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = uiState.connectedBrand.protocolNote,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -435,12 +466,12 @@ fun AboutStudioSheetContent(
 ) {
     GlassSubCard {
         Text(
-            text = "Karan Buds Studio · V1.0",
+            text = "CK · Monochrome Liquid Glass Companion",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "Built by Karan Audio Lab for OnePlus Nord Buds 3 Pro and standard Bluetooth A2DP / BLE Audio earbuds.",
+            text = "Package: com.karan.budsstudio · Designed for Vivo X300 and Android 12+ devices with real Bluetooth A2DP/HFP/GATT telemetry.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -448,27 +479,31 @@ fun AboutStudioSheetContent(
 
     GlassSubCard {
         Text(
-            text = "HARDWARE & PROTOCOL NOTES",
+            text = "STANDARD BLUETOOTH (REAL-TIME)",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = StatusEmerald,
         )
         Text(
-            text = "• Bluetooth Manager reads bonded A2DP/HFP profiles, discovers BLE & classic devices, and queries GATT Battery Service (0x180F) & Device Info (0x180A).",
+            text = "• Automatic connection/disconnection detection, brand identification (OnePlus, Samsung, JBL, realme, OPPO, vivo, boAt, Apple, Sony, Nothing), animated popup & background monitor.\n" +
+                "• Unified Bluetooth battery level via HFP/A2DP & GATT 0x180F, AudioRouteInfo codec/sample rate, and GATT Device Information (0x180A) firmware revision.\n" +
+                "• Live 5-band Equalizer & BassBoost via Android AudioFX.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "• Equalizer Studio drives Android's native AudioFX Equalizer & BassBoost when the device permits session-0 attachment, and persists all custom curves locally via DataStore.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = "PROPRIETARY OEM PROTOCOLS",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "• Vendor-proprietary ANC/touch opcodes require OEM protocol authorization; preferences are safely persisted in your studio profile.",
+            text = "• Per-earbud Left/Right/Case split battery, hardware ANC mode registers, touch gesture flashing, and encrypted firmware OTA packages require each manufacturer's signed protocol.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(4.dp))
-        InfoLine("Bluetooth Permissions", if (uiState.hasAllPermissions) "Granted" else "Pending")
+        InfoLine("Bluetooth Permissions", if (uiState.hasAllBluetoothPermissions) "Granted" else "Pending")
+        InfoLine("Notifications", if (uiState.hasNotificationPermission) "Allowed" else "Pending")
         InfoLine("AudioFX Equalizer", uiState.hardwareEqStatus)
     }
 }

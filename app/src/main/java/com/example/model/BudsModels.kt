@@ -1,5 +1,137 @@
 package com.example.model
 
+enum class EarbudBrand(
+    val displayName: String,
+    val shortCode: String,
+    val officialCompanionName: String,
+    val officialSupportUrl: String,
+    val protocolNote: String,
+) {
+    VIVO(
+        displayName = "vivo / iQOO",
+        shortCode = "VIVO",
+        officialCompanionName = "vivo TWS / OriginOS Audio",
+        officialSupportUrl = "https://www.vivo.com/en/support",
+        protocolNote = "Standard A2DP/HFP telemetry supported; split case battery & proprietary ANC use vivo BLE vendor packets.",
+    ),
+    ONEPLUS(
+        displayName = "OnePlus",
+        shortCode = "1+",
+        officialCompanionName = "OnePlus Wireless Earphones / HeyMelody",
+        officialSupportUrl = "https://service.oneplus.com/",
+        protocolNote = "Standard A2DP/HFP & GATT supported; OEM firmware signing & split battery use HeyMelody BLE protocol.",
+    ),
+    SAMSUNG(
+        displayName = "Samsung",
+        shortCode = "SMG",
+        officialCompanionName = "Galaxy Wearable",
+        officialSupportUrl = "https://www.samsung.com/support/",
+        protocolNote = "Standard Bluetooth audio supported; Galaxy Buds per-bud telemetry & OTA require Galaxy Wearable SPP.",
+    ),
+    JBL(
+        displayName = "JBL",
+        shortCode = "JBL",
+        officialCompanionName = "JBL Headphones",
+        officialSupportUrl = "https://support.jbl.com/",
+        protocolNote = "Standard A2DP/HFP supported; Harman/JBL EQ curves & OTA use proprietary BLE GATT service.",
+    ),
+    REALME(
+        displayName = "realme",
+        shortCode = "RME",
+        officialCompanionName = "realme Link",
+        officialSupportUrl = "https://www.realme.com/support",
+        protocolNote = "Standard Bluetooth audio supported; realme Link controls & firmware OTA require OEM signed packets.",
+    ),
+    OPPO(
+        displayName = "OPPO",
+        shortCode = "OPPO",
+        officialCompanionName = "HeyMelody",
+        officialSupportUrl = "https://support.oppo.com/",
+        protocolNote = "Standard A2DP/HFP supported; Enco dual-bud telemetry & firmware OTA use OPPO/HeyMelody protocol.",
+    ),
+    BOAT(
+        displayName = "boAt",
+        shortCode = "boAt",
+        officialCompanionName = "boAt Hearables",
+        officialSupportUrl = "https://support.boat-lifestyle.com/",
+        protocolNote = "Standard A2DP/HFP supported; Airdopes/Nirvana OEM OTA & custom profiles use boAt Hearables BLE.",
+    ),
+    APPLE(
+        displayName = "Apple",
+        shortCode = "AAPL",
+        officialCompanionName = "Apple Continuity BLE",
+        officialSupportUrl = "https://support.apple.com/airpods",
+        protocolNote = "Standard A2DP/HFP audio works on Android; Continuity proximity packets are proprietary to Apple.",
+    ),
+    SONY(
+        displayName = "Sony",
+        shortCode = "SONY",
+        officialCompanionName = "Sony Sound Connect",
+        officialSupportUrl = "https://www.sony.com/electronics/support",
+        protocolNote = "Standard A2DP/LDAC/HFP supported; Sony DSEE/ANC & signed OTA use Sony proprietary SPP.",
+    ),
+    NOTHING(
+        displayName = "Nothing / CMF",
+        shortCode = "NTH",
+        officialCompanionName = "Nothing X",
+        officialSupportUrl = "https://support.nothing.tech/",
+        protocolNote = "Standard A2DP/HFP supported; Nothing X ANC & OTA require Nothing X protocol.",
+    ),
+    GENERIC(
+        displayName = "Bluetooth Audio",
+        shortCode = "BT",
+        officialCompanionName = "Standard Android Bluetooth",
+        officialSupportUrl = "https://source.android.com/docs/core/connect/bluetooth",
+        protocolNote = "Using standard Android A2DP, HFP battery level, AudioFX DSP, and GATT 0x180F/0x180A profiles.",
+    ),
+}
+
+enum class ThemePreference(val label: String, val subtitle: String) {
+    WHITE("Pure White Glass", "Signature luminous white & frosted silver"),
+    AUTO("Adaptive", "Follows system light or dark appearance"),
+    BLACK("Obsidian Glass", "Deep black frosted monochrome"),
+}
+
+enum class PopupStyle(val label: String, val description: String) {
+    LIQUID_SHEET("iOS Liquid Sheet", "Bottom frosted glass card with 3D earbuds"),
+    DYNAMIC_CAPSULE("Dynamic Capsule", "Top floating pill expanding with telemetry"),
+    MINIMAL_CARD("Minimal Card", "Compact white glass status toast"),
+}
+
+enum class AnimationStyle(val label: String, val description: String) {
+    LIQUID_SPRING("Liquid Spring", "Organic iOS-inspired spring physics"),
+    ORBITAL_3D("Orbital 3D", "Continuous 3D rotation & floating depth"),
+    CRISP_MINIMAL("Crisp Minimal", "Fast, understated micro-transitions"),
+}
+
+enum class NotificationStyle(val label: String, val description: String) {
+    DETAILED_TELEMETRY("Detailed Telemetry", "Brand, battery level, codec & audio route"),
+    COMPACT_MONOCHROME("Compact", "Minimal connection status line"),
+    QUIET_STATUS("Quiet Monitor", "Silent status badge without pop-up alerts"),
+}
+
+enum class LayoutDensity(val label: String) {
+    EXPANDED_STUDIO("Studio Showcase"),
+    COMPACT_MINIMAL("Compact Grid"),
+}
+
+data class UiCustomizationConfig(
+    val themePreference: ThemePreference = ThemePreference.WHITE,
+    val popupStyle: PopupStyle = PopupStyle.LIQUID_SHEET,
+    val animationStyle: AnimationStyle = AnimationStyle.LIQUID_SPRING,
+    val notificationStyle: NotificationStyle = NotificationStyle.DETAILED_TELEMETRY,
+    val glassTransparency: Float = 0.80f,
+    val glassBlurDp: Float = 20f,
+    val silverReflectionIntensity: Float = 0.72f,
+    val cardCornerRadiusDp: Float = 26f,
+    val animationSpeedMultiplier: Float = 1.0f,
+    val enable3dAutoOrbit: Boolean = true,
+    val layoutDensity: LayoutDensity = LayoutDensity.EXPANDED_STUDIO,
+    val showEqCardOnHome: Boolean = true,
+    val autoConnectionPopupEnabled: Boolean = true,
+    val backgroundMonitoringEnabled: Boolean = false,
+)
+
 enum class NoiseControlMode(val label: String, val shortLabel: String) {
     ANC("Noise cancellation", "ANC"),
     OFF("Off", "Off"),
@@ -19,7 +151,7 @@ enum class EqPreset(
 ) {
     BALANCED(
         label = "Balanced",
-        description = "Natural reference studio curve",
+        description = "Neutral studio reference curve",
         bandsDb = listOf(0f, 0f, 0f, 0f, 0f),
     ),
     BASS_BOOST(
@@ -72,31 +204,21 @@ data class BatteryTelemetry(
     val isLeftCharging: Boolean = false,
     val isRightCharging: Boolean = false,
     val isCaseCharging: Boolean = false,
+    val isUnifiedSingleReport: Boolean = false,
+    val lowBatteryThreshold: Int = 20,
     val sourceLabel: String = "Awaiting Bluetooth connection",
 ) {
     val hasAnyLevel: Boolean
         get() = leftLevel != null || rightLevel != null || caseLevel != null
-}
 
-data class ConnectedDeviceDetail(
-    val address: String,
-    val name: String,
-    val batteryLevel: Int? = null,
-    val batterySource: String = "Battery telemetry pending",
-    val codecLabel: String = "A2DP / GATT",
-    val sampleRateHz: Int? = null,
-    val bitsPerSample: Int? = null,
-    val channelCount: Int? = null,
-    val firmwareVersion: String? = null,
-    val manufacturerName: String? = null,
-    val profiles: List<String> = emptyList(),
-    val rssi: Int? = null,
-    val isPrimaryAudioRoute: Boolean = false,
-)
+    val isLowBattery: Boolean
+        get() = listOfNotNull(leftLevel, rightLevel, caseLevel).any { it <= lowBatteryThreshold }
+}
 
 data class DiscoveredBluetoothDevice(
     val name: String,
     val address: String,
+    val brand: EarbudBrand = EarbudBrand.GENERIC,
     val rssi: Int? = null,
     val isBonded: Boolean = false,
     val isAudioDevice: Boolean = false,
@@ -127,46 +249,89 @@ data class PermissionItemState(
     val permission: String,
     val title: String,
     val description: String,
+    val whyNeeded: String,
     val isGranted: Boolean,
     val isRuntimeRequestable: Boolean = true,
 )
 
-enum class StudioTab(val label: String) {
-    DEVICE("Device"),
-    EQUALIZER("Equalizer"),
-    CONTROLS("Controls"),
+enum class FirmwareCheckStage {
+    IDLE,
+    VERIFYING_GATT_AND_OEM,
+    UP_TO_DATE_STANDARD,
+    PROPRIETARY_OEM_PROTOCOL,
+    DFU_SERVICE_READY,
+    OFFLINE_OR_DISCONNECTED,
 }
 
-sealed interface GlassSubMenu {
-    data object BluetoothManager : GlassSubMenu
-    data object PermissionHelper : GlassSubMenu
-    data object NoiseControlSettings : GlassSubMenu
-    data object EqualizerSettings : GlassSubMenu
-    data object EarbudControlsSettings : GlassSubMenu
-    data object DeviceManagement : GlassSubMenu
-    data object AboutStudio : GlassSubMenu
+data class FirmwareInfoState(
+    val installedVersion: String? = null,
+    val hardwareRevision: String? = null,
+    val softwareRevision: String? = null,
+    val manufacturerName: String? = null,
+    val modelNumber: String? = null,
+    val hasStandardDfuService: Boolean = false,
+    val discoveredServiceCount: Int = 0,
+    val checkStage: FirmwareCheckStage = FirmwareCheckStage.IDLE,
+    val statusHeadline: String = "Ready to verify connected earbuds",
+    val statusDetail: String = "Connect earbuds to read GATT Device Information (0x180A) and verify official firmware channels.",
+    val officialReachable: Boolean? = null,
+    val verificationSteps: List<String> = emptyList(),
+    val checkProgress: Float = 0f,
+    val lastCheckedLabel: String? = null,
+)
+
+data class ConnectionPopupEvent(
+    val deviceName: String,
+    val address: String?,
+    val brand: EarbudBrand,
+    val isConnected: Boolean,
+    val isPreview: Boolean = false,
+    val batteryLevel: Int? = null,
+    val transportLabel: String = "Bluetooth Audio",
+    val eventId: Long = System.currentTimeMillis(),
+)
+
+object CkRoutes {
+    const val HOME = "home"
+    const val BLUETOOTH_DEVICES = "bluetooth_devices"
+    const val BATTERY_DASHBOARD = "battery_dashboard"
+    const val FIRMWARE_UPDATE = "firmware_update"
+    const val ANIMATION_SETTINGS = "animation_settings"
+    const val GLASS_CUSTOMIZATION = "glass_customization"
+    const val PERMISSIONS = "app_permissions"
+    const val ABOUT_CK = "about_ck"
+    const val EQUALIZER = "equalizer"
+    const val CONTROLS = "controls"
+}
+
+// Unused legacy aliases kept absent; all tabs and screens route through CkRoutes.
+enum class StudioTab(val label: String, val route: String) {
+    HOME("Home", CkRoutes.HOME),
+    DEVICES("Devices", CkRoutes.BLUETOOTH_DEVICES),
+    BATTERY("Battery", CkRoutes.BATTERY_DASHBOARD),
+    STYLE("Glass", CkRoutes.GLASS_CUSTOMIZATION),
 }
 
 data class BudsStudioUiState(
-    val selectedTab: StudioTab = StudioTab.DEVICE,
-    val activeSubMenu: GlassSubMenu? = null,
     val connectionState: BluetoothConnectionState = BluetoothConnectionState.DISCONNECTED,
     val connectedDeviceName: String? = null,
     val connectedDeviceAddress: String? = null,
-    val connectedDevices: List<ConnectedDeviceDetail> = emptyList(),
+    val connectedBrand: EarbudBrand = EarbudBrand.GENERIC,
     val rememberedDeviceAddresses: Set<String> = emptySet(),
-    val autoReconnectEnabled: Boolean = true,
-    val firmwareVersion: String? = null,
-    val statusBanner: String = "Ready · Tap Connect earbuds or open Bluetooth Manager",
+    val statusBanner: String = "Ready · Tap Connect Earbuds or scan nearby devices",
     val isScanning: Boolean = false,
     val isBluetoothEnabled: Boolean = false,
     val hasBluetoothHardware: Boolean = true,
-    val hasAllPermissions: Boolean = false,
+    val hasAllBluetoothPermissions: Boolean = false,
+    val hasNotificationPermission: Boolean = true,
     val permissionChecklist: List<PermissionItemState> = emptyList(),
     val bondedDevices: List<DiscoveredBluetoothDevice> = emptyList(),
     val scannedDevices: List<DiscoveredBluetoothDevice> = emptyList(),
     val audioRouteInfo: AudioRouteInfo = AudioRouteInfo(),
     val battery: BatteryTelemetry = BatteryTelemetry(),
+    val firmware: FirmwareInfoState = FirmwareInfoState(),
+    val activePopupEvent: ConnectionPopupEvent? = null,
+    val customization: UiCustomizationConfig = UiCustomizationConfig(),
     val noiseControlMode: NoiseControlMode = NoiseControlMode.ANC,
     val ancStrength: AncStrength = AncStrength.HIGH,
     val personalisedAnc: Boolean = true,

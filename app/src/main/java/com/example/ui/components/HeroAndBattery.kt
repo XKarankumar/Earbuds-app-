@@ -11,7 +11,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,14 +29,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BluetoothConnected
 import androidx.compose.material.icons.rounded.BluetoothDisabled
 import androidx.compose.material.icons.rounded.BluetoothSearching
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -51,35 +52,41 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.model.AudioRouteInfo
 import com.example.model.BatteryTelemetry
 import com.example.model.BluetoothConnectionState
+import com.example.model.EarbudBrand
+import com.example.model.LayoutDensity
+import com.example.ui.theme.LocalLiquidGlassStyle
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.SilverEdgeRim
+import com.example.ui.theme.SilverShadowTint
+import com.example.ui.theme.SoftSilverGradientEnd
 import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusCoral
 import com.example.ui.theme.StatusEmerald
-import com.example.ui.theme.StudioCobalt
-import com.example.ui.theme.StudioMint
-import com.example.ui.theme.StudioMintGlow
 
 @Composable
 fun StudioTopBar(
     hasAllPermissions: Boolean,
     isBluetoothEnabled: Boolean,
     onOpenPermissions: () -> Unit,
-    onOpenBluetoothManager: () -> Unit,
+    onOpenFirmware: () -> Unit,
+    onOpenBluetoothDevices: () -> Unit,
     onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -88,22 +95,67 @@ fun StudioTopBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(
-            text = stringResource(R.string.studio_brand),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // Luxury CK Logo at the top
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            val isDark = LocalLiquidGlassStyle.current.isDark
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .shadow(8.dp, CircleShape, ambientColor = SilverShadowTint.copy(alpha = 0.35f))
+                    .clip(CircleShape)
+                    .background(
+                        if (isDark) {
+                            Brush.linearGradient(listOf(Color(0xFF282A33), Color(0xFF14151B)))
+                        } else {
+                            Brush.linearGradient(listOf(PureWhite, SoftSilverGradientEnd))
+                        },
+                    )
+                    .border(
+                        1.2.dp,
+                        if (isDark) Color.White.copy(alpha = 0.35f) else PureWhite,
+                        CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "CK",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            Column {
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.6.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Text(
+                    text = "LIQUID GLASS AUDIO",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Surface(
                 shape = CircleShape,
                 color = if (hasAllPermissions) {
-                    StatusEmerald.copy(alpha = 0.14f)
+                    StatusEmerald.copy(alpha = 0.12f)
                 } else {
-                    StatusAmber.copy(alpha = 0.16f)
+                    StatusAmber.copy(alpha = 0.14f)
                 },
                 modifier = Modifier
                     .minimumInteractiveComponentSize()
@@ -112,176 +164,129 @@ fun StudioTopBar(
                     .testTag("permission_status_chip"),
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(
                         imageVector = if (hasAllPermissions) Icons.Rounded.Security else Icons.Rounded.WarningAmber,
                         contentDescription = stringResource(R.string.cd_permission_shield),
                         tint = if (hasAllPermissions) StatusEmerald else StatusAmber,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(15.dp),
                     )
                     Text(
-                        text = if (hasAllPermissions) "Permissions OK" else "Permissions",
+                        text = if (hasAllPermissions) "OK" else "Perms",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (hasAllPermissions) StatusEmerald else StatusAmber,
                     )
                 }
             }
 
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 2.dp,
-                modifier = Modifier.size(48.dp),
+            GlassCircleIconButton(
+                onClick = onOpenFirmware,
+                testTag = "top_firmware_button",
             ) {
-                IconButton(
-                    onClick = onOpenBluetoothManager,
-                    modifier = Modifier.testTag("top_bluetooth_button"),
-                ) {
-                    Icon(
-                        imageVector = if (isBluetoothEnabled) Icons.Rounded.Bluetooth else Icons.Rounded.BluetoothDisabled,
-                        contentDescription = stringResource(R.string.bluetooth_manager_title),
-                        tint = if (isBluetoothEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Rounded.SystemUpdate,
+                    contentDescription = stringResource(R.string.cd_firmware_check),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
             }
 
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 2.dp,
-                modifier = Modifier.size(48.dp),
+            GlassCircleIconButton(
+                onClick = onOpenBluetoothDevices,
+                testTag = "top_bluetooth_button",
             ) {
-                IconButton(
-                    onClick = onOpenAbout,
-                    modifier = Modifier.testTag("more_options_button"),
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.MoreVert,
-                        contentDescription = stringResource(R.string.cd_more_options),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+                Icon(
+                    imageVector = if (isBluetoothEnabled) Icons.Rounded.Bluetooth else Icons.Rounded.BluetoothDisabled,
+                    contentDescription = stringResource(R.string.bluetooth_manager_title),
+                    tint = if (isBluetoothEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            GlassCircleIconButton(
+                onClick = onOpenAbout,
+                testTag = "more_options_button",
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Info,
+                    contentDescription = stringResource(R.string.cd_more_options),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
             }
         }
     }
 }
 
 @Composable
+private fun GlassCircleIconButton(
+    onClick: () -> Unit,
+    testTag: String,
+    content: @Composable () -> Unit,
+) {
+    val glassStyle = LocalLiquidGlassStyle.current
+    Surface(
+        shape = CircleShape,
+        color = if (glassStyle.isDark) {
+            MaterialTheme.colorScheme.surface.copy(alpha = glassStyle.glassAlpha)
+        } else {
+            PureWhite.copy(alpha = 0.90f)
+        },
+        shadowElevation = 5.dp,
+        modifier = Modifier
+            .size(44.dp)
+            .border(
+                1.dp,
+                if (glassStyle.isDark) Color.White.copy(alpha = 0.22f) else SilverEdgeRim,
+                CircleShape,
+            ),
+    ) {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier.testTag(testTag),
+            content = content,
+        )
+    }
+}
+
+@Composable
 fun HeroEarbudsSection(
     deviceTitle: String,
+    brand: EarbudBrand,
     connectionState: BluetoothConnectionState,
     statusBanner: String,
     audioRouteInfo: AudioRouteInfo,
+    layoutDensity: LayoutDensity,
     onPrimaryConnectClick: () -> Unit,
-    onOpenBluetoothManager: () -> Unit,
+    onOpenBluetoothDevices: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "hero_halo")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.92f,
-        targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2600, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "halo_scale",
-    )
-
+    val glassStyle = LocalLiquidGlassStyle.current
     val isConnected = connectionState == BluetoothConnectionState.CONNECTED
     val isScanning = connectionState == BluetoothConnectionState.SCANNING ||
         connectionState == BluetoothConnectionState.CONNECTING
+    val stageHeight = if (layoutDensity == LayoutDensity.COMPACT_MINIMAL) 210.dp else 276.dp
 
-    Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = deviceTitle,
-            style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(modifier = Modifier.height(6.dp))
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(
-                text = stringResource(R.string.studio_title),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-            ) {
-                Text(
-                    text = stringResource(R.string.version_badge),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                )
-            }
-            if (audioRouteInfo.isBluetoothAudioActive) {
-                Surface(
-                    shape = CircleShape,
-                    color = StudioMint.copy(alpha = 0.18f),
-                ) {
-                    Text(
-                        text = audioRouteInfo.codecLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = StudioMint,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(240.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .clickable(onClick = onOpenBluetoothManager)
-                .testTag("hero_earbuds_card"),
-            contentAlignment = Alignment.Center,
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val glowColor = when {
-                    isConnected -> StatusEmerald.copy(alpha = 0.24f)
-                    isScanning -> StudioCobalt.copy(alpha = 0.22f)
-                    else -> StudioMintGlow.copy(alpha = 0.35f)
-                }
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(glowColor, Color.Transparent),
-                        center = center,
-                        radius = (size.minDimension * 0.48f) * pulseScale,
-                    ),
-                    radius = (size.minDimension * 0.48f) * pulseScale,
-                    center = center,
-                )
-            }
-
-            Image(
-                painter = painterResource(id = R.drawable.img_buds_hero),
-                contentDescription = stringResource(R.string.cd_hero_earbuds),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(28.dp)),
+            BrandLogoBadge(
+                brand = brand,
+                size = 34.dp,
+                showLabel = true,
             )
 
-            // Subtle connection status pill anchored cleanly at top-left
             val badgeColor by animateColorAsState(
                 targetValue = when (connectionState) {
                     BluetoothConnectionState.CONNECTED -> StatusEmerald
                     BluetoothConnectionState.SCANNING,
-                    BluetoothConnectionState.CONNECTING -> StudioCobalt
+                    BluetoothConnectionState.CONNECTING -> MaterialTheme.colorScheme.onSurface
                     BluetoothConnectionState.PERMISSION_REQUIRED,
                     BluetoothConnectionState.BLUETOOTH_OFF -> StatusAmber
                     BluetoothConnectionState.UNAVAILABLE -> StatusCoral
@@ -292,11 +297,17 @@ fun HeroEarbudsSection(
 
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
-                shadowElevation = 2.dp,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(14.dp),
+                color = if (glassStyle.isDark) {
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                } else {
+                    PureWhite.copy(alpha = 0.92f)
+                },
+                shadowElevation = 4.dp,
+                modifier = Modifier.border(
+                    1.dp,
+                    if (isConnected) StatusEmerald.copy(alpha = 0.35f) else SilverEdgeRim,
+                    CircleShape,
+                ),
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -313,7 +324,7 @@ fun HeroEarbudsSection(
                         },
                         contentDescription = null,
                         tint = badgeColor,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(15.dp),
                     )
                     Text(
                         text = when (connectionState) {
@@ -323,11 +334,63 @@ fun HeroEarbudsSection(
                             BluetoothConnectionState.BLUETOOTH_OFF -> "Bluetooth Off"
                             BluetoothConnectionState.PERMISSION_REQUIRED -> "Permissions Needed"
                             BluetoothConnectionState.UNAVAILABLE -> "BT Unavailable"
-                            BluetoothConnectionState.DISCONNECTED -> "Not Connected"
+                            BluetoothConnectionState.DISCONNECTED -> "Disconnected"
                         },
                         style = MaterialTheme.typography.labelSmall,
                         color = badgeColor,
                     )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(
+            text = deviceTitle,
+            style = MaterialTheme.typography.displaySmall,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Large centered 3D Earbuds Frosted Glass Stage
+        LiquidGlassCard(
+            cornerRadius = glassStyle.cornerRadius + 4.dp,
+            contentPadding = 6.dp,
+            onClick = onOpenBluetoothDevices,
+            modifier = Modifier.testTag("hero_earbuds_card"),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(stageHeight),
+            ) {
+                Buds3DShowcaseStage(
+                    connectionState = connectionState,
+                    brand = brand,
+                    modifier = Modifier.fillMaxSize(),
+                )
+
+                if (audioRouteInfo.isBluetoothAudioActive) {
+                    Surface(
+                        shape = CircleShape,
+                        color = if (glassStyle.isDark) Color.Black.copy(alpha = 0.6f) else PureWhite.copy(alpha = 0.90f),
+                        shadowElevation = 4.dp,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(10.dp)
+                            .border(1.dp, SilverEdgeRim, CircleShape),
+                    ) {
+                        Text(
+                            text = "${audioRouteInfo.transportType} · ${audioRouteInfo.codecLabel}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        )
+                    }
                 }
             }
         }
@@ -338,12 +401,12 @@ fun HeroEarbudsSection(
             onClick = onPrimaryConnectClick,
             shape = RoundedCornerShape(18.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (isConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
-                contentColor = if (isConnected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.background,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(54.dp)
+                .height(52.dp)
                 .testTag("connect_earbuds_button"),
         ) {
             Icon(
@@ -358,10 +421,10 @@ fun HeroEarbudsSection(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = when {
-                    isConnected -> "Manage Bluetooth Audio"
+                    isConnected -> "Manage Bluetooth Devices"
                     connectionState == BluetoothConnectionState.PERMISSION_REQUIRED -> "Grant Bluetooth Permissions"
                     connectionState == BluetoothConnectionState.BLUETOOTH_OFF -> "Turn On Bluetooth"
-                    isScanning -> "Scanning Nearby Devices…"
+                    isScanning -> "Scanning Nearby Earbuds…"
                     else -> stringResource(R.string.connect_earbuds)
                 },
                 style = MaterialTheme.typography.labelLarge,
@@ -383,6 +446,7 @@ fun HeroEarbudsSection(
 @Composable
 fun BatteryUiSection(
     battery: BatteryTelemetry,
+    onOpenBatteryDashboard: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -390,22 +454,38 @@ fun BatteryUiSection(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(onClick = onOpenBatteryDashboard)
+                .padding(vertical = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "BATTERY STATUS",
+                text = "BATTERY DASHBOARD",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
-                text = battery.sourceLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = StudioMint,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                if (battery.isLowBattery) {
+                    Icon(
+                        imageVector = Icons.Rounded.BatteryAlert,
+                        contentDescription = "Low battery alert",
+                        tint = StatusCoral,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+                Text(
+                    text = "Details ›",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (battery.isLowBattery) StatusCoral else MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                )
+            }
         }
 
         Row(
@@ -414,25 +494,32 @@ fun BatteryUiSection(
                 .testTag("battery_ui_row"),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            val leftDisplayLabel = if (battery.isUnifiedSingleReport) "Buds (BT)" else "Left"
+            val rightSubLabel = if (battery.isUnifiedSingleReport && battery.rightLevel == null) "OEM BLE" else null
+            val caseSubLabel = if (battery.isUnifiedSingleReport && battery.caseLevel == null) "OEM BLE" else null
+
             BatteryRingCard(
-                label = "Left bud",
+                label = leftDisplayLabel,
                 level = battery.leftLevel,
                 isCharging = battery.isLeftCharging,
-                accentColor = StudioMint,
+                protocolHint = if (battery.isUnifiedSingleReport) "Unified" else null,
+                onClick = onOpenBatteryDashboard,
                 modifier = Modifier.weight(1f),
             )
             BatteryRingCard(
-                label = "Right bud",
+                label = "Right",
                 level = battery.rightLevel,
                 isCharging = battery.isRightCharging,
-                accentColor = StudioCobalt,
+                protocolHint = rightSubLabel,
+                onClick = onOpenBatteryDashboard,
                 modifier = Modifier.weight(1f),
             )
             BatteryRingCard(
                 label = "Case",
                 level = battery.caseLevel,
                 isCharging = battery.isCaseCharging,
-                accentColor = StatusEmerald,
+                protocolHint = caseSubLabel,
+                onClick = onOpenBatteryDashboard,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -440,11 +527,12 @@ fun BatteryUiSection(
 }
 
 @Composable
-private fun BatteryRingCard(
+fun BatteryRingCard(
     label: String,
     level: Int?,
     isCharging: Boolean,
-    accentColor: Color,
+    protocolHint: String?,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val progressTarget = ((level ?: 0).coerceIn(0, 100)) / 100f
@@ -453,35 +541,43 @@ private fun BatteryRingCard(
         animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessLow),
         label = "battery_sweep_$label",
     )
-    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val infiniteTransition = rememberInfiniteTransition(label = "charging_pulse_$label")
+    val chargingAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(950, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "charging_alpha",
+    )
+
+    val trackColor = SilverEdgeRim.copy(alpha = 0.70f)
     val ringColor = when {
         level == null -> trackColor
-        level <= 15 -> StatusCoral
-        level <= 30 -> StatusAmber
-        else -> accentColor
+        level <= 20 -> StatusCoral
+        level <= 35 -> StatusAmber
+        isCharging -> StatusEmerald
+        else -> MaterialTheme.colorScheme.primary
     }
 
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        modifier = modifier.border(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant,
-            shape = RoundedCornerShape(20.dp),
-        ),
+    LiquidGlassCard(
+        modifier = modifier,
+        cornerRadius = 22.dp,
+        contentPadding = 12.dp,
+        onClick = onClick,
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 14.dp, horizontal = 8.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Box(
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(58.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val strokePx = 6.dp.toPx()
+                    val strokePx = 5.5.dp.toPx()
                     drawArc(
                         color = trackColor,
                         startAngle = 135f,
@@ -491,7 +587,7 @@ private fun BatteryRingCard(
                     )
                     if (level != null) {
                         drawArc(
-                            color = ringColor,
+                            color = ringColor.copy(alpha = if (isCharging) chargingAlpha else 1f),
                             startAngle = 135f,
                             sweepAngle = 270f * animatedSweep,
                             useCenter = false,
@@ -499,30 +595,39 @@ private fun BatteryRingCard(
                         )
                     }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = level?.let { "$it%" } ?: "—",
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+                Text(
+                    text = level?.let { "$it%" } ?: "—",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 if (isCharging) {
                     Icon(
                         imageVector = Icons.Rounded.BatteryChargingFull,
                         contentDescription = "Charging",
                         tint = StatusEmerald,
-                        modifier = Modifier.size(14.dp),
+                        modifier = Modifier
+                            .size(14.dp)
+                            .alpha(chargingAlpha),
                     )
                 }
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                )
+            }
+
+            if (protocolHint != null) {
+                Text(
+                    text = protocolHint,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                 )

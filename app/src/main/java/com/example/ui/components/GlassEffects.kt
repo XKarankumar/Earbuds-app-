@@ -1,50 +1,30 @@
 package com.example.ui.components
 
 import android.os.Build
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,33 +33,40 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.R
-import com.example.ui.theme.StudioCobalt
-import com.example.ui.theme.StudioMintSoft
+import com.example.model.AnimationStyle
+import com.example.ui.theme.LocalLiquidGlassStyle
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.SilverEdgeRim
+import com.example.ui.theme.SilverShadowTint
+import com.example.ui.theme.SoftSilverGradientEnd
+import com.example.ui.theme.SoftSilverGradientMid
 
 @Composable
 fun Modifier.backdropGlassBlur(isBlurred: Boolean): Modifier {
+    val style = LocalLiquidGlassStyle.current
+    val targetBlur = if (isBlurred) style.blurRadius else 0.dp
     val blurRadius: Dp by animateDpAsState(
-        targetValue = if (isBlurred) 18.dp else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow,
-        ),
+        targetValue = targetBlur,
+        animationSpec = when (style.animationStyle) {
+            AnimationStyle.CRISP_MINIMAL -> tween(120)
+            else -> spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+            )
+        },
         label = "backdrop_blur_radius",
     )
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && blurRadius > 0.dp) {
@@ -90,208 +77,142 @@ fun Modifier.backdropGlassBlur(isBlurred: Boolean): Modifier {
 }
 
 @Composable
-fun GlassModalOverlay(
-    visible: Boolean,
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    onDismiss: () -> Unit,
+fun LiquidGlassStageBackground(
     modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable BoxScope.() -> Unit,
 ) {
-    BackHandler(enabled = visible, onBack = onDismiss)
-
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(animationSpec = tween(220)),
-        exit = fadeOut(animationSpec = tween(180)),
-        modifier = modifier,
+    val glassStyle = LocalLiquidGlassStyle.current
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
     ) {
-        val infiniteTransition = rememberInfiniteTransition(label = "glass_sheen")
-        val sheenProgress by infiniteTransition.animateFloat(
-            initialValue = -0.4f,
-            targetValue = 1.4f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 4800, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-            label = "sheen_sweep",
-        )
-
-        val scrimInteraction = remember { MutableInteractionSource() }
-        val panelInteraction = remember { MutableInteractionSource() }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
+        // Soft silver luminous radial accents on pure white so frosted glass cards catch light cleanly
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            if (!glassStyle.isDark) {
+                drawCircle(
+                    brush = Brush.radialGradient(
                         colors = listOf(
-                            StudioMintSoft.copy(alpha = 0.22f),
-                            Color.Black.copy(alpha = 0.44f),
+                            Color(0xFFEEF1F7).copy(alpha = 0.85f),
+                            Color.Transparent,
                         ),
+                        center = Offset(size.width * 0.16f, size.height * 0.14f),
+                        radius = size.maxDimension * 0.45f,
                     ),
+                    center = Offset(size.width * 0.16f, size.height * 0.14f),
+                    radius = size.maxDimension * 0.45f,
                 )
-                .clickable(
-                    interactionSource = scrimInteraction,
-                    indication = null,
-                    onClick = onDismiss,
-                )
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .imePadding()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            contentAlignment = Alignment.BottomCenter,
-        ) {
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(tween(220)) +
-                    scaleIn(
-                        initialScale = 0.92f,
-                        animationSpec = spring(
-                            dampingRatio = 0.78f,
-                            stiffness = Spring.StiffnessMediumLow,
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFFE9EDF5).copy(alpha = 0.72f),
+                            Color.Transparent,
                         ),
-                    ) +
-                    slideInVertically(
-                        initialOffsetY = { it / 8 },
-                        animationSpec = spring(
-                            dampingRatio = 0.82f,
-                            stiffness = Spring.StiffnessMediumLow,
-                        ),
+                        center = Offset(size.width * 0.88f, size.height * 0.56f),
+                        radius = size.maxDimension * 0.42f,
                     ),
-                exit = fadeOut(tween(160)) +
-                    scaleOut(targetScale = 0.94f, animationSpec = tween(160)) +
-                    slideOutVertically(targetOffsetY = { it / 10 }, animationSpec = tween(160)),
-            ) {
-                val glassSurfaceTop = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f)
-                val glassSurfaceBottom = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.84f)
-                val borderBrush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.72f),
-                        StudioMintSoft.copy(alpha = 0.48f),
-                        StudioCobalt.copy(alpha = 0.30f),
-                        Color.White.copy(alpha = 0.35f),
-                    ),
+                    center = Offset(size.width * 0.88f, size.height * 0.56f),
+                    radius = size.maxDimension * 0.42f,
                 )
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .widthIn(max = 580.dp)
-                        .heightIn(max = 720.dp)
-                        .clip(RoundedCornerShape(30.dp))
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(glassSurfaceTop, glassSurfaceBottom),
-                            ),
-                        )
-                        .drawBehind {
-                            val startX = size.width * sheenProgress
-                            drawRect(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        Color.White.copy(alpha = 0.14f),
-                                        StudioMintSoft.copy(alpha = 0.12f),
-                                        Color.Transparent,
-                                    ),
-                                    start = Offset(startX - 240f, 0f),
-                                    end = Offset(startX + 240f, size.height),
-                                ),
-                            )
-                        }
-                        .border(
-                            width = 1.25.dp,
-                            brush = borderBrush,
-                            shape = RoundedCornerShape(30.dp),
-                        )
-                        .clickable(
-                            interactionSource = panelInteraction,
-                            indication = null,
-                            onClick = {},
+            } else {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.05f),
+                            Color.Transparent,
                         ),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.CenterHorizontally)
-                                .width(42.dp)
-                                .height(4.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)),
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
-                                    modifier = Modifier.size(44.dp),
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = icon,
-                                            contentDescription = title,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(22.dp),
-                                        )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = title,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                    )
-                                    Text(
-                                        text = subtitle,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                            IconButton(
-                                onClick = onDismiss,
-                                modifier = Modifier
-                                    .minimumInteractiveComponentSize()
-                                    .testTag("close_glass_sheet_button"),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Close,
-                                    contentDescription = stringResource(R.string.cd_close_sheet),
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            content = content,
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                    }
-                }
+                        center = Offset(size.width * 0.5f, size.height * 0.22f),
+                        radius = size.maxDimension * 0.45f,
+                    ),
+                    center = Offset(size.width * 0.5f, size.height * 0.22f),
+                    radius = size.maxDimension * 0.45f,
+                )
             }
         }
+        content()
     }
+}
+
+@Composable
+fun LiquidGlassCard(
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = LocalLiquidGlassStyle.current.cornerRadius,
+    onClick: (() -> Unit)? = null,
+    contentPadding: Dp = 18.dp,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val glassStyle = LocalLiquidGlassStyle.current
+    val shape = RoundedCornerShape(cornerRadius)
+    val alpha = glassStyle.glassAlpha.coerceIn(0.45f, 0.96f)
+    val reflect = glassStyle.reflectionIntensity.coerceIn(0.15f, 1.0f)
+
+    val borderBrush = if (glassStyle.isDark) {
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.36f * reflect),
+                Color.White.copy(alpha = 0.08f),
+                Color.White.copy(alpha = 0.22f * reflect),
+            ),
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                PureWhite.copy(alpha = 0.96f),
+                SilverEdgeRim.copy(alpha = 0.75f),
+                PureWhite.copy(alpha = 0.85f),
+            ),
+        )
+    }
+
+    val fillBrush = if (glassStyle.isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surface.copy(alpha = alpha),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = (alpha - 0.08f).coerceAtLeast(0.36f)),
+            ),
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                PureWhite.copy(alpha = (alpha + 0.08f).coerceAtMost(0.97f)),
+                SoftSilverGradientMid.copy(alpha = alpha),
+                SoftSilverGradientEnd.copy(alpha = (alpha - 0.12f).coerceAtLeast(0.40f)),
+            ),
+        )
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = if (glassStyle.isDark) 10.dp else 14.dp,
+                shape = shape,
+                ambientColor = if (glassStyle.isDark) Color.Black.copy(alpha = 0.24f) else SilverShadowTint.copy(alpha = 0.28f),
+                spotColor = if (glassStyle.isDark) Color.Black.copy(alpha = 0.28f) else SilverShadowTint.copy(alpha = 0.22f),
+            )
+            .clip(shape)
+            .background(fillBrush)
+            .drawBehind {
+                // Specular top-edge liquid glass reflection band
+                val sheenAlpha = if (glassStyle.isDark) 0.07f * reflect else 0.55f * reflect
+                drawRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = sheenAlpha),
+                            Color.Transparent,
+                            Color.White.copy(alpha = sheenAlpha * 0.35f),
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(size.width * 0.75f, size.height * 0.55f),
+                    ),
+                )
+            }
+            .border(width = 1.15.dp, brush = borderBrush, shape = shape)
+            .let { m -> if (onClick != null) m.clickable(onClick = onClick) else m }
+            .padding(contentPadding),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        content = content,
+    )
 }
 
 @Composable
@@ -300,29 +221,79 @@ fun GlassSubCard(
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = RoundedCornerShape(20.dp)
-    val baseModifier = modifier
-        .fillMaxWidth()
-        .clip(shape)
-        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.68f))
-        .border(
-            width = 1.dp,
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.55f),
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
-                ),
-            ),
-            shape = shape,
-        )
-        .let { m ->
-            if (onClick != null) m.clickable(onClick = onClick) else m
-        }
-        .padding(16.dp)
-
-    Column(
-        modifier = baseModifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    LiquidGlassCard(
+        modifier = modifier,
+        cornerRadius = (LocalLiquidGlassStyle.current.cornerRadius - 4.dp).coerceAtLeast(14.dp),
+        onClick = onClick,
+        contentPadding = 16.dp,
         content = content,
     )
+}
+
+@Composable
+fun WhiteGlassScreenHeader(
+    title: String,
+    subtitle: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    trailingContent: (@Composable () -> Unit)? = null,
+) {
+    val glassStyle = LocalLiquidGlassStyle.current
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f),
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = if (glassStyle.isDark) {
+                    MaterialTheme.colorScheme.surface.copy(alpha = glassStyle.glassAlpha)
+                } else {
+                    PureWhite.copy(alpha = 0.90f)
+                },
+                shadowElevation = 6.dp,
+                modifier = Modifier
+                    .size(46.dp)
+                    .border(
+                        1.dp,
+                        if (glassStyle.isDark) Color.White.copy(alpha = 0.22f) else SilverEdgeRim,
+                        CircleShape,
+                    ),
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .testTag("screen_back_button"),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (trailingContent != null) {
+            Spacer(modifier = Modifier.width(8.dp))
+            trailingContent()
+        }
+    }
 }
