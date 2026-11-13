@@ -1,6 +1,6 @@
 {
-  "name": "Simple SMS Calculator",
-  "description": "Simple SMS Calculator – 100% offline business calculator, encrypted local Hisab-Kitab udhaar/jama ledger, SIM/native SMS payment receipts, GST/EMI/unit converters, PDF/CSV/Excel exports, local backup/restore, and permission manager for Hardik Kumar.",
+  "name": "Karan Number Finder Pro AI",
+  "description": "Karan Number Finder Pro AI – AI-powered phone number verification, spam & fraud risk analysis, photo OCR & object scanner, bilingual Hindi/English AI security assistant, encrypted local search history, PDF export, and privacy dashboard by Hardik Kumar.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

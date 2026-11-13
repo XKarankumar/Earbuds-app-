@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Simple SMS Calculator"
+rootProject.name = "Karan Number Finder Pro AI"
 
 include(":app")
