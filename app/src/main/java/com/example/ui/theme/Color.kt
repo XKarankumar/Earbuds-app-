@@ -4,158 +4,121 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
-import com.example.model.OceanEmeraldMode
+import com.example.model.ThemeMode
 
-object OceanEmeraldColors {
-    val DeepOceanBlue = Color(0xFF071B33)
-    val OceanBlue = Color(0xFF0878D1)
-    val EmeraldGreen = Color(0xFF00A878)
-    val MintGreen = Color(0xFF69E6B4)
-    val GlassWhite = Color(0xFFF5FFFC)
-
-    // Supporting tonal variants for Blue-to-Emerald harmony
-    val DeepTeal = Color(0xFF062C38)
-    val MidnightOcean = Color(0xFF0B2747)
-    val SoftSeafoam = Color(0xFFE1F7F0)
-    val SoftSkyTint = Color(0xFFDCEEFF)
-    val CoralAlert = Color(0xFFFF6B81)
-    val AmberHighlight = Color(0xFFFBBF24)
+object FitnessColors {
+    val PureAmoledBlack = Color(0xFF000000)
+    val DeepObsidian = Color(0xFF08090C)
+    val ElectricCyan = Color(0xFF00E5FF)
+    val EmeraldPulse = Color(0xFF10B981)
+    val AmberAlert = Color(0xFFF59E0B)
+    val CrimsonRose = Color(0xFFFF3B5C)
+    val PureWhite = Color(0xFFFFFFFF)
+    val IceSilver = Color(0xFFE5E7EB)
+    val CoolSlate = Color(0xFF94A3B8)
 }
 
-data class OceanEmeraldPalette(
+data class GlassPalette(
     val isDark: Boolean,
-    val bgTop: Color,
-    val bgMiddle: Color,
-    val bgBottom: Color,
-    val ambientOrbOcean: Color,
-    val ambientOrbMint: Color,
-    val glassCardFill: Color,
-    val glassCardElevatedFill: Color,
-    val glassBorderHighlight: Color,
-    val glassBorderAccent: Color,
-    val glowShadowColor: Color,
-    val numberKeyFill: Color,
-    val numberKeyBorder: Color,
-    val numberKeyText: Color,
-    val operatorKeyFill: Color,
-    val operatorKeyBorder: Color,
-    val operatorKeyText: Color,
-    val utilityKeyFill: Color,
-    val utilityKeyText: Color,
-    val equalsStart: Color,
-    val equalsEnd: Color,
-    val jamaAccent: Color,
-    val udhaarAccent: Color,
-    val warningAccent: Color,
-    val dangerAccent: Color,
-    val navBarSurface: Color
+    val background: Color,
+    val ambientGlowPrimary: Color,
+    val ambientGlowSecondary: Color,
+    val glassFill: Color,
+    val glassElevatedFill: Color,
+    val glassBorderTop: Color,
+    val glassBorderBottom: Color,
+    val accentCyan: Color,
+    val accentEmerald: Color,
+    val accentAmber: Color,
+    val accentDanger: Color,
+    val navSurface: Color,
+    val primaryText: Color,
+    val secondaryText: Color
 )
 
-object OceanEmeraldThemes {
+object FitnessThemes {
 
-    fun colorSchemeFor(mode: OceanEmeraldMode): ColorScheme = when (mode) {
-        OceanEmeraldMode.DARK -> darkColorScheme(
-            primary = OceanEmeraldColors.OceanBlue,
-            onPrimary = OceanEmeraldColors.GlassWhite,
-            primaryContainer = Color(0xFF0D3B66),
-            onPrimaryContainer = Color(0xFFD6ECFF),
-            secondary = OceanEmeraldColors.EmeraldGreen,
-            onSecondary = OceanEmeraldColors.GlassWhite,
-            secondaryContainer = Color(0xFF054A39),
-            onSecondaryContainer = OceanEmeraldColors.MintGreen,
-            tertiary = OceanEmeraldColors.MintGreen,
-            onTertiary = OceanEmeraldColors.DeepOceanBlue,
-            background = OceanEmeraldColors.DeepOceanBlue,
-            onBackground = OceanEmeraldColors.GlassWhite,
-            surface = Color(0xFF0B2542),
-            onSurface = OceanEmeraldColors.GlassWhite,
-            surfaceVariant = Color(0xFF103252),
-            onSurfaceVariant = Color(0xFFAAD6D0),
-            outline = Color(0xFF28587B),
-            error = OceanEmeraldColors.CoralAlert,
-            onError = Color(0xFF3E0412)
+    fun colorSchemeFor(mode: ThemeMode): ColorScheme = when (mode) {
+        ThemeMode.AMOLED_DARK -> darkColorScheme(
+            primary = FitnessColors.ElectricCyan,
+            onPrimary = FitnessColors.PureAmoledBlack,
+            primaryContainer = Color(0xFF0B2A33),
+            onPrimaryContainer = Color(0xFFCFFAFE),
+            secondary = FitnessColors.EmeraldPulse,
+            onSecondary = FitnessColors.PureAmoledBlack,
+            secondaryContainer = Color(0xFF072B20),
+            onSecondaryContainer = Color(0xFFA7F3D0),
+            tertiary = FitnessColors.PureWhite,
+            onTertiary = FitnessColors.PureAmoledBlack,
+            background = FitnessColors.PureAmoledBlack,
+            onBackground = FitnessColors.PureWhite,
+            surface = Color(0xFF0B0D11),
+            onSurface = FitnessColors.PureWhite,
+            surfaceVariant = Color(0xFF141820),
+            onSurfaceVariant = Color(0xFFB6C2D1),
+            outline = Color(0x33FFFFFF),
+            error = FitnessColors.CrimsonRose,
+            onError = FitnessColors.PureWhite
         )
 
-        OceanEmeraldMode.LIGHT -> lightColorScheme(
-            primary = OceanEmeraldColors.OceanBlue,
-            onPrimary = OceanEmeraldColors.GlassWhite,
-            primaryContainer = Color(0xFFD6ECFF),
-            onPrimaryContainer = OceanEmeraldColors.DeepOceanBlue,
-            secondary = OceanEmeraldColors.EmeraldGreen,
-            onSecondary = OceanEmeraldColors.GlassWhite,
-            secondaryContainer = Color(0xFFD3F8EA),
-            onSecondaryContainer = Color(0xFF023D2C),
-            tertiary = Color(0xFF0B8A6A),
-            onTertiary = OceanEmeraldColors.GlassWhite,
-            background = OceanEmeraldColors.GlassWhite,
-            onBackground = OceanEmeraldColors.DeepOceanBlue,
-            surface = OceanEmeraldColors.GlassWhite,
-            onSurface = OceanEmeraldColors.DeepOceanBlue,
-            surfaceVariant = Color(0xFFE0F3EE),
-            onSurfaceVariant = Color(0xFF2F546E),
-            outline = Color(0xFF9AC9C6),
-            error = Color(0xFFD92D53),
+        ThemeMode.LIGHT_GLASS -> lightColorScheme(
+            primary = Color(0xFF0284C7),
+            onPrimary = Color.White,
+            primaryContainer = Color(0xFFE0F2FE),
+            onPrimaryContainer = Color(0xFF082F49),
+            secondary = Color(0xFF059669),
+            onSecondary = Color.White,
+            secondaryContainer = Color(0xFFD1FAE5),
+            onSecondaryContainer = Color(0xFF064E3B),
+            tertiary = Color(0xFF0F172A),
+            onTertiary = Color.White,
+            background = Color(0xFFF3F6FA),
+            onBackground = Color(0xFF0A0D14),
+            surface = Color(0xFFFFFFFF),
+            onSurface = Color(0xFF0A0D14),
+            surfaceVariant = Color(0xFFE8EEF5),
+            onSurfaceVariant = Color(0xFF475569),
+            outline = Color(0xFFCBD5E1),
+            error = Color(0xFFE11D48),
             onError = Color.White
         )
     }
 
-    fun paletteFor(mode: OceanEmeraldMode): OceanEmeraldPalette = when (mode) {
-        OceanEmeraldMode.DARK -> OceanEmeraldPalette(
+    fun paletteFor(mode: ThemeMode): GlassPalette = when (mode) {
+        ThemeMode.AMOLED_DARK -> GlassPalette(
             isDark = true,
-            bgTop = OceanEmeraldColors.DeepOceanBlue,
-            bgMiddle = Color(0xFF07283D),
-            bgBottom = Color(0xFF05333A),
-            ambientOrbOcean = OceanEmeraldColors.OceanBlue.copy(alpha = 0.34f),
-            ambientOrbMint = OceanEmeraldColors.MintGreen.copy(alpha = 0.22f),
-            glassCardFill = Color(0xB80B2745),
-            glassCardElevatedFill = Color(0xD90E3254),
-            glassBorderHighlight = OceanEmeraldColors.MintGreen.copy(alpha = 0.42f),
-            glassBorderAccent = OceanEmeraldColors.OceanBlue.copy(alpha = 0.45f),
-            glowShadowColor = OceanEmeraldColors.EmeraldGreen.copy(alpha = 0.28f),
-            numberKeyFill = OceanEmeraldColors.OceanBlue.copy(alpha = 0.28f),
-            numberKeyBorder = OceanEmeraldColors.OceanBlue.copy(alpha = 0.55f),
-            numberKeyText = OceanEmeraldColors.GlassWhite,
-            operatorKeyFill = OceanEmeraldColors.EmeraldGreen.copy(alpha = 0.30f),
-            operatorKeyBorder = OceanEmeraldColors.MintGreen.copy(alpha = 0.60f),
-            operatorKeyText = OceanEmeraldColors.MintGreen,
-            utilityKeyFill = Color(0x40F5FFFC),
-            utilityKeyText = OceanEmeraldColors.GlassWhite,
-            equalsStart = OceanEmeraldColors.OceanBlue,
-            equalsEnd = OceanEmeraldColors.EmeraldGreen,
-            jamaAccent = OceanEmeraldColors.MintGreen,
-            udhaarAccent = Color(0xFF56B4FF),
-            warningAccent = OceanEmeraldColors.AmberHighlight,
-            dangerAccent = OceanEmeraldColors.CoralAlert,
-            navBarSurface = Color(0xE0061B31)
+            background = FitnessColors.PureAmoledBlack,
+            ambientGlowPrimary = Color(0x2800E5FF),
+            ambientGlowSecondary = Color(0x2210B981),
+            glassFill = Color(0x14FFFFFF),
+            glassElevatedFill = Color(0x20FFFFFF),
+            glassBorderTop = Color(0x42FFFFFF),
+            glassBorderBottom = Color(0x14FFFFFF),
+            accentCyan = FitnessColors.ElectricCyan,
+            accentEmerald = FitnessColors.EmeraldPulse,
+            accentAmber = FitnessColors.AmberAlert,
+            accentDanger = FitnessColors.CrimsonRose,
+            navSurface = Color(0xE8060709),
+            primaryText = FitnessColors.PureWhite,
+            secondaryText = Color(0xFFB4C0CF)
         )
 
-        OceanEmeraldMode.LIGHT -> OceanEmeraldPalette(
+        ThemeMode.LIGHT_GLASS -> GlassPalette(
             isDark = false,
-            bgTop = OceanEmeraldColors.GlassWhite,
-            bgMiddle = OceanEmeraldColors.SoftSkyTint,
-            bgBottom = OceanEmeraldColors.SoftSeafoam,
-            ambientOrbOcean = OceanEmeraldColors.OceanBlue.copy(alpha = 0.18f),
-            ambientOrbMint = OceanEmeraldColors.EmeraldGreen.copy(alpha = 0.18f),
-            glassCardFill = Color(0xD4F5FFFC),
-            glassCardElevatedFill = Color(0xF0FFFFFF),
-            glassBorderHighlight = Color.White.copy(alpha = 0.95f),
-            glassBorderAccent = OceanEmeraldColors.EmeraldGreen.copy(alpha = 0.35f),
-            glowShadowColor = OceanEmeraldColors.OceanBlue.copy(alpha = 0.16f),
-            numberKeyFill = OceanEmeraldColors.OceanBlue,
-            numberKeyBorder = OceanEmeraldColors.GlassWhite.copy(alpha = 0.55f),
-            numberKeyText = OceanEmeraldColors.GlassWhite,
-            operatorKeyFill = OceanEmeraldColors.EmeraldGreen,
-            operatorKeyBorder = OceanEmeraldColors.MintGreen.copy(alpha = 0.75f),
-            operatorKeyText = OceanEmeraldColors.GlassWhite,
-            utilityKeyFill = Color(0xFFE0F2FE),
-            utilityKeyText = OceanEmeraldColors.DeepOceanBlue,
-            equalsStart = OceanEmeraldColors.OceanBlue,
-            equalsEnd = OceanEmeraldColors.EmeraldGreen,
-            jamaAccent = OceanEmeraldColors.EmeraldGreen,
-            udhaarAccent = OceanEmeraldColors.OceanBlue,
-            warningAccent = Color(0xFFD97706),
-            dangerAccent = Color(0xFFD92D53),
-            navBarSurface = Color(0xEBF5FFFC)
+            background = Color(0xFFF3F6FA),
+            ambientGlowPrimary = Color(0x220284C7),
+            ambientGlowSecondary = Color(0x1C10B981),
+            glassFill = Color(0xD6FFFFFF),
+            glassElevatedFill = Color(0xF5FFFFFF),
+            glassBorderTop = Color(0xFFFFFFFF),
+            glassBorderBottom = Color(0x220F172A),
+            accentCyan = Color(0xFF0284C7),
+            accentEmerald = Color(0xFF059669),
+            accentAmber = Color(0xFFD97706),
+            accentDanger = Color(0xFFE11D48),
+            navSurface = Color(0xF0FFFFFF),
+            primaryText = Color(0xFF0A0D14),
+            secondaryText = Color(0xFF475569)
         )
     }
 }

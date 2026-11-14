@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Simple SMS Calculator"
+rootProject.name = "Fitness Hub"
 
 include(":app")

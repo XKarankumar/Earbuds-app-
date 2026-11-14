@@ -1,17 +1,16 @@
 <resources>
-    <string name="app_name">Simple SMS Calculator</string>
-    <string name="theme_title">Ocean Emerald 3.5</string>
+    <string name="app_name">Fitness Hub</string>
+    <string name="brand_title">FITNESS HUB</string>
     <string name="brand_owner">Hardik Kumar</string>
+    <string name="brand_version">Version 1.0</string>
     <string name="brand_copyright">© 2026 Hardik Kumar. All Rights Reserved.</string>
-    <string name="cd_hero_banner">Ocean Emerald 3.5 glassmorphism hero banner</string>
     <string name="cd_back">Navigate back</string>
-    <string name="cd_copy_result">Copy calculation result</string>
-    <string name="cd_share_result">Share calculation result</string>
-    <string name="cd_send_sms">Send via SMS</string>
-    <string name="cd_theme_toggle">Toggle Ocean Emerald Dark and Light theme</string>
-    <string name="cd_swap_units">Swap conversion units</string>
+    <string name="cd_hero_banner">Fitness Hub 3D AMOLED glass studio banner</string>
+    <string name="cd_anatomy_preview">3D anatomical muscle fiber preview</string>
+    <string name="cd_equipment_preview">3D gym equipment preview</string>
+    <string name="cd_qr_scan">Scan member QR code</string>
+    <string name="cd_theme_toggle">Toggle AMOLED Dark and Light Glass theme</string>
+    <string name="cd_add_member">Add gym member</string>
+    <string name="cd_generate_token">Generate access token</string>
     <string name="cd_export_pdf">Export PDF report</string>
-    <string name="cd_delete_item">Delete item</string>
-    <string name="cd_add_customer">Add customer</string>
-    <string name="cd_call_customer">Call customer</string>
 </resources>

@@ -14,11 +14,11 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.hardikkumar.simplesmscalculator"
+    applicationId = "com.aistudio.fitnesshub.hkprod"
     minSdk = 24
     targetSdk = 36
     versionCode = 1
-    versionName = "1.0.0"
+    versionName = "1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -89,12 +89,12 @@ tasks.withType<Test> {
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
   implementation(libs.androidx.activity.compose)
-  // implementation(libs.androidx.biometric)
-  // CameraX & barcode scanning commented out for APK size optimization
-  // implementation(libs.androidx.camera.camera2)
-  // implementation(libs.androidx.camera.core)
-  // implementation(libs.androidx.camera.lifecycle)
-  // implementation(libs.androidx.camera.view)
+  // CameraX & ML Kit Barcode Scanning for QR Check-In
+  implementation(libs.androidx.camera.camera2)
+  implementation(libs.androidx.camera.core)
+  implementation(libs.androidx.camera.lifecycle)
+  implementation(libs.androidx.camera.view)
+  implementation(libs.mlkit.barcode.scanning)
   implementation(libs.androidx.compose.material.icons.core)
   implementation(libs.androidx.compose.material.icons.extended)
   implementation(libs.androidx.compose.material3)
@@ -109,18 +109,13 @@ dependencies {
   implementation(libs.androidx.navigation.compose)
   implementation(libs.androidx.room.runtime)
   implementation(libs.androidx.room.ktx)
+  implementation(libs.androidx.work.runtime.ktx)
   ksp(libs.androidx.room.compiler)
-  // Unused networking/AI/ML dependencies commented out for 100% offline APK size optimization
-  // implementation(libs.coil.compose)
-  // implementation(platform(libs.firebase.bom))
-  // implementation(libs.firebase.ai)
-  // implementation(libs.firebase.appcheck.recaptcha)
-  // implementation(libs.firebase.appcheck.debug)
+  implementation(libs.coil.compose)
+  implementation(libs.okhttp)
+  implementation(libs.zxing.core)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
-  // implementation(libs.libphonenumber)
-  // implementation(libs.mlkit.barcode.scanning)
-  // implementation(libs.mlkit.text.recognition)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)

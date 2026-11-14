@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/ic_ocean_emerald_fg_clean"
+        android:drawable="@drawable/ic_fitness_hub_fg_1794653577273"
         android:gravity="center" />
 </layer-list>

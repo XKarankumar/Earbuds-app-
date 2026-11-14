@@ -1,23 +1,20 @@
-# Privacy Policy — Karan Number Finder Pro AI
+# Privacy Policy — FITNESS HUB
 
-**Effective Date:** November 13, 2026  
-**Developer / Copyright Owner:** Hardik Kumar  
-**Application:** Karan Number Finder Pro AI (Version 1.0)
+**Effective Date:** November 14, 2026  
+**Developer:** Hardik Kumar  
+**Application:** FITNESS HUB (Version 1.0)
 
-## 1. Privacy-First Commitment & Indian Legal Compliance
-Karan Number Finder Pro AI is engineered in compliance with India's **Digital Personal Data Protection (DPDP) Act, 2023**, the **Information Technology Act, 2000**, and Google Play / Apple App Store privacy policies.
+## 1. Data Minimization & Security
+- **HTTPS Only:** `network_security_config.xml` sets `cleartextTrafficPermitted="false"`.
+- **No Tracking or Spyware:** Zero analytics SDKs, zero background location tracking, zero contact harvesting.
+- **No Hardcoded Secrets:** Zero master tokens, API keys, or keystore passwords are embedded in the APK.
 
-## 2. Information We NEVER Access, Reveal, or Fabricate
-- **No Private Personal Profiling:** The app **never** reveals or fabricates private home addresses, Aadhaar details, PAN, bank account numbers, private photographs, or live GPS locations from a phone number.
-- **No Unauthorized Contacts or SMS Harvesting:** `READ_CONTACTS`, `SEND_SMS`, `READ_SMS`, and broad external storage (`READ_MEDIA_IMAGES`, `READ_EXTERNAL_STORAGE`) permissions are **not** declared or requested.
-- **No Facial Recognition:** AI Photo Scanner never performs facial identification or private photo retrieval.
+## 2. Permissions Used Only When Needed
+- **Photo Selection:** Uses the zero-permission Android Photo Picker (`ActivityResultContracts.PickVisualMedia`). No `READ_EXTERNAL_STORAGE` or `READ_MEDIA_IMAGES` permissions are declared.
+- **Camera (`CAMERA`):** Requested at runtime only when the user opens the QR Check-In Scanner.
+- **Notifications (`POST_NOTIFICATIONS`):** Requested on Android 13+ only when the user enables daily workout reminders.
+- **SMS Dispatch:** Uses configured Authorized HTTPS SMS Gateway or zero-permission Android SMS Intent handoff (`ACTION_SENDTO smsto:`). `SEND_SMS` / `READ_SMS` permissions are not requested.
 
-## 3. Permissions & User Consent
-- **Guest Mode by Default:** No Google or Apple login is required.
-- **Photo Selection:** Uses the zero-permission Android Photo Picker (`PickVisualMedia`) / iOS PhotosPicker.
-- **Camera:** `CAMERA` permission is requested only when the user explicitly taps Capture Photo.
-- **Export & Share:** PDF reports are generated locally and shared only when the user taps Share.
-
-## 4. Data Encryption & User Control
-- Local search history is encrypted on-device using Android Keystore **AES-256-GCM** (or iOS Keychain + CryptoKit AES-GCM).
-- Users may disable history saving, delete individual records, or clear all records at any time in **Search History** or **Security Center**.
+## 3. Data Encryption & User Deletion Rights
+- Member phone numbers, emergency contacts, gateway credentials, and cached authorization leases are encrypted using **AndroidKeyStore AES-256-GCM**.
+- Users can erase all local Room and DataStore records immediately via **Settings → Privacy Policy & Data Deletion → Delete All Data**.

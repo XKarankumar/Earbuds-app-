@@ -1,18 +1,14 @@
-# Database & Encrypted Vault Configuration
+# Database & AndroidKeyStore Encryption Configuration
 
-## 1. Android Local Encrypted Database (Room + Android Keystore AES-256-GCM)
-- **Database Name:** `karan_finder_vault.db` (`AppDatabase`, version `2`)
-- **DAO:** `SearchHistoryDao` (`Flow<List<SearchHistoryEntity>>`, suspend `insert`, `deleteById`, `deleteAll`)
-- **Entity:** `SearchHistoryEntity(id, recordType, encryptedPayload, riskScore, createdAtMillis)`
-- **Encryption Layer (`CryptoVault.kt`):**
-  - Uses `AndroidKeyStore` hardware-backed 256-bit `AES/GCM/NoPadding` key (`karan_finder_pro_vault_v1`).
-  - Every `SearchHistoryRecord` JSON payload (`title`, `subtitle`, `riskLevel`, `summaryText`, `sourceAttribution`) is encrypted with a fresh 12-byte GCM IV before persisting to SQLite.
-  - Optional 4-digit Vault PIN is hashed using `PBKDF2WithHmacSHA256` (65,536 iterations, 16-byte random salt) and stored encrypted in Jetpack DataStore (`karan_finder_pro_prefs`).
+## 1. Room Database (`fitness_hub_v1.db`)
+- **Tables (`13`):** `members`, `trainers`, `attendance`, `payments`, `workout_plan_items`, `custom_routines`, `workout_history`, `diet_meals`, `weight_logs`, `water_logs`, `access_tokens`, `token_audit`, `sms_logs`.
+- **Reactive Access:** All DAOs expose `Flow<List<...>>` for main-thread-safe reactive Compose updates and `suspend` functions for writes.
 
-## 2. iOS Local Encrypted Vault (Keychain + CryptoKit AES-GCM)
-- Implemented in `ios/KaranNumberFinderPro/Services/EncryptedVaultService.swift`.
-- Generates a 256-bit `SymmetricKey` stored in iOS Keychain (`kSecClassGenericPassword`) and seals serialized history using `AES.GCM.seal`.
-
-## 3. Guest Mode & User Control
-- No mandatory Google/Apple sign-in is required.
-- Users can toggle **Save Local Search History** in Security Center, delete individual records, or clear all encrypted records with one tap.
+## 2. AndroidKeyStore AES-256-GCM Encryption (`KeystoreCryptoManager`)
+- **Key Alias:** `FitnessHubMasterAesKey_v1` in `AndroidKeyStore` (`AES/GCM/NoPadding`, 256-bit, random 12-byte IV per ciphertext).
+- **Encrypted at Rest:**
+  - Member & Trainer mobile phone numbers (`encryptedPhone`)
+  - Member emergency contact names & numbers (`encryptedEmergencyName`, `encryptedEmergencyPhone`)
+  - SMS Gateway API Key / Bearer token (`sms_api_key_enc` in DataStore)
+  - Time-limited Offline Token Authorization Lease (`cached_auth_lease_enc` in DataStore)
+- **Token Hashing:** Access tokens are never stored in plaintext or hardcoded in the APK; only SHA-256 digests (`tokenHash`) and masked previews (`FH-ADM-••••-CHK`) are stored.

@@ -1,6 +1,6 @@
 {
-  "name": "Simple SMS Calculator",
-  "description": "Simple SMS Calculator featuring the Ocean Emerald 3.5 theme — smart animated calculator, offline Hisab-Kitab ledger, customer profiles, zero-permission SMS reminder composer, unit converter, GST/EMI calculators, and PDF reports by Hardik Kumar.",
+  "name": "Fitness Hub",
+  "description": "FITNESS HUB v1.0 by Hardik Kumar — Premium AMOLED black iOS-glass fitness & gym management app featuring an interactive 3D exercise library across 10 muscle groups, personal workout & diet planner, token-based access control, mobile OTP verification, QR attendance check-in, PDF receipts, and automated SMS gateway reminders.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
