@@ -1,16 +1,17 @@
 <resources>
-    <string name="app_name">Fitness Hub</string>
-    <string name="brand_title">FITNESS HUB</string>
-    <string name="brand_owner">Hardik Kumar</string>
-    <string name="brand_version">Version 1.0</string>
-    <string name="brand_copyright">© 2026 Hardik Kumar. All Rights Reserved.</string>
+    <string name="app_name">Theatre Pro</string>
+    <string name="app_full_title">ULTIMATE HOME THEATRE PRO</string>
+    <string name="nav_studio">Studio</string>
+    <string name="nav_bass_eq">Bass &amp; EQ</string>
+    <string name="nav_dj">DJ Console</string>
+    <string name="nav_rgb">RGB Studio</string>
+    <string name="nav_system">System</string>
+    <string name="cd_hero_theatre">Luxury acoustic home theatre mastering studio</string>
+    <string name="cd_headphones_preview">Reference audiophile headphones on acoustic stand</string>
     <string name="cd_back">Navigate back</string>
-    <string name="cd_hero_banner">Fitness Hub 3D AMOLED glass studio banner</string>
-    <string name="cd_anatomy_preview">3D anatomical muscle fiber preview</string>
-    <string name="cd_equipment_preview">3D gym equipment preview</string>
-    <string name="cd_qr_scan">Scan member QR code</string>
-    <string name="cd_theme_toggle">Toggle AMOLED Dark and Light Glass theme</string>
-    <string name="cd_add_member">Add gym member</string>
-    <string name="cd_generate_token">Generate access token</string>
-    <string name="cd_export_pdf">Export PDF report</string>
+    <string name="cd_settings">Open theme and preferences</string>
+    <string name="cd_play_pause">Play or pause audio</string>
+    <string name="cd_load_audio">Load local audio track</string>
+    <string name="safe_volume_warning_title">High Output Level Warning</string>
+    <string name="safe_volume_warning_body">Sustained listening at high volume or boosted software gain can cause hearing fatigue or speaker distortion. Software clipping protection remains active.</string>
 </resources>

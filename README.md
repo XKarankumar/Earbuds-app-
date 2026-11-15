@@ -1,28 +1,61 @@
-# FITNESS HUB (v1.0)
+# ULTIMATE HOME THEATRE PRO
 
-**Developer / Copyright:** © 2026 Hardik Kumar. All Rights Reserved.  
-**Platform:** Native Android (Kotlin, Jetpack Compose, Room, AndroidKeyStore AES-256-GCM)  
-**Design:** Premium AMOLED Black (`#000000`) iOS-Inspired White Glassmorphism + Light Glass Theme
+A modular Kotlin + Jetpack Compose Android audio engineering suite built for Android 8.0 Oreo (API 26) through Android 16+ (API 36), featuring real-time DSP processing, dual-deck DJ mixing, WLED/ESP32/BLE RGB lighting studio, honest ANC & Dolby Atmos capability detection, and Android Spatializer 3D surround integration.
 
----
+## Key Features
 
-## Core Modules & Features
+- **5 Console Themes + Custom Theme Editor**: Premium Dark, Monochrome B&W, Silver Glass, RGB Neon (synced to live LED preview), and Custom Theme Editor with DataStore persistence.
+- **Extra Bass, Subwoofer & 10-Band EQ (`:audio-engine`)**: Real-time 10-band biquad EQ (`31 Hz – 16 kHz`), Bass Booster, Subwoofer LFE shelf, Deep Bass (40 Hz), Cinema Bass (58 Hz), Mid/Treble shelves, built-in + user-saved EQ presets, Media3 `ExoPlayer` `AudioProcessor` pipeline, and soft-knee `-0.3 dBFS` anti-clipping limiter.
+- **Extra Volume & Safe Listening**: Synchronized Android `STREAM_MUSIC` hardware volume control, digital loudness gain (`0–12 dB`) with clipping guard, and configurable Safe Volume Warning (`>= 80%`).
+- **Dual-Deck DJ Console (`:dj-console`)**: Two independent 44.1 kHz live audio decks (built-in studio stems + local MP3/WAV/AAC/FLAC decoding via `MediaExtractor`/`MediaCodec`), Play/Pause, Cue, interactive vinyl Scratch wheel, 1/2/4/8-beat Loop, 4 Hot Cues per deck, onset autocorrelation BPM detection, Tempo & Beat Sync, 3-band per-deck EQ, LPF/HPF resonant filter, equal-power Crossfader, Echo, Reverb, and **16 live synthesized Performance Pads**.
+- **RGB Lighting Studio (`:rgb-controller`)**: **108 procedural RGB effects** across 9 categories, Music Reactive & Bass Beat Sync driven by real-time FFT/RMS telemetry, custom RGB colors, saved presets, **WLED DRGB UDP (port 21324)**, **ESP32 UDP (port 4210)**, and **Bluetooth LE GATT** controller discovery. Explicitly reports Preview-Only mode whenever no physical RGB controller is connected.
+- **Honest ANC, Spatial Audio & Dolby Atmos (`:device-compatibility`, `:spatial-audio`, `:dolby-integration`)**:
+  - **ANC**: Detects Bluetooth/USB/wired headsets and reports OEM SDK availability honestly; never simulates hardware ANC.
+  - **Spatial Audio**: Integrates `AudioManager.getSpatializer()` (API 32+) and Head Tracking (API 33+), with Cinema/Music/Gaming modes and a transparent Virtual Surround DSP fallback on Android 8.0–12.
+  - **Dolby Atmos**: Inspects `MediaCodecList`, `AudioDeviceInfo` encodings, HDMI ARC/eARC routes, and `AudioTrack.isDirectPlaybackSupported()` (API 29+) without ever faking Dolby certification.
 
-1. **Home:** Daily biometric rings (Calories, Protein, Water), 3D hero banner, active member & revenue KPIs, and 1-tap access to all 10 screens.
-2. **Complete 3D Exercise Library:** 33 exercises across all **10 muscle groups** (*Chest, Back, Shoulders, Biceps, Triceps, Legs, Abs, Forearms, Calves, Cardio*). Every exercise includes an interactive 360° 3D perspective-projected biomechanical animation (`Exercise3DCanvas`), target muscle glowing highlights, equipment info, difficulty level, posture guide, step-by-step instructions, sets/reps, live countdown **Rest Timer**, common mistakes, and safety instructions.
-3. **Personal Workout Planner:** Daily planner (Mon–Sun), custom split routine builder, session completion & history log, and WorkManager workout reminders (`POST_NOTIFICATIONS` gated on Android 13+).
-4. **Diet, Hydration & Biometrics:** Daily meal planner, Mifflin-St Jeor Calories & Protein calculator, BMI calculator with healthy weight range, Weight progress line chart, Workout volume bar chart, and Water tracker.
-5. **Members & Mobile Number System:** Member registration with international country code support, 6-digit OTP verification flow, Unique Member ID (`FH-MEM-XXXX`), emergency contact, zero-permission Android Photo Picker (`PickVisualMedia`), Member QR Pass, and encrypted PII storage.
-6. **Attendance & QR Check-In:** CameraX + ML Kit Barcode Scanning QR check-in, manual attendance marking, and **Missed Gym Detection** comparing scheduled gym days against attendance after the configured deadline.
-7. **Gym Management:** Admin dashboard, monthly/quarterly/yearly fee collection, pending fee & membership expiry alerts, trainer management, monthly revenue charts, **PDF Fee Receipts** (with QR verification) & **Monthly Revenue PDF Reports**.
-8. **Token-Based App Access & Token Management:** Zero hardcoded master tokens; dynamic `SecureRandom` token generation, optional HTTPS backend verification, one-device binding (`SHA-256` device hash), renewal, revocation of compromised tokens, brute-force invalid token lockout, audit history, and AndroidKeyStore-encrypted time-limited offline leases.
-9. **Authorized SMS Gateway System:** Automated event notifications (Attendance Missing, Workout Missed, Membership Expiry, Fee Pending, Payment Confirmation, New Member Registration, Token Expiry) over HTTPS Gateway or zero-permission SMS Intent handoff, with per-member opt-in preferences, duplicate suppression (`dedupeKey`), and delivery status tracking.
-10. **Profile & Settings:** AMOLED Black / Light Glass theme switcher, gym & deadline configuration, HTTPS gateway setup, Privacy Policy, and one-tap complete local data deletion.
+## Project Module Architecture
 
-## Documentation & Reports
-- [Android Build Instructions (Debug & Signed Release APK)](docs/ANDROID_BUILD.md)
-- [Database & AndroidKeyStore Encryption Config](docs/DATABASE_CONFIG.md)
-- [SMS & Token HTTPS Gateway Setup](docs/API_SETUP.md)
-- [Privacy Policy & Data Deletion](docs/PRIVACY_POLICY.md)
-- [Security Scan Report](docs/SECURITY_SCAN_REPORT.md)
-- [Testing Report](docs/TESTING_REPORT.md)
+```
+ultimate-home-theatre-pro/
+├── app/                   # Jetpack Compose UI, Navigation, Media3 MediaSessionService, DataStore
+├── core/                  # Shared domain models, themes, EQ catalog, future expansion contracts
+├── audio-engine/          # Media3 AudioProcessor, 10-band biquad DSP, soft-clip limiter, FFT analyzer
+├── dj-console/            # Dual-deck live PCM mixer, MediaCodec decoder, BPM detector, 16 pads
+├── rgb-controller/        # 108 RGB effects, WLED DRGB UDP, ESP32 UDP, BLE GATT controller
+├── device-compatibility/  # AudioDeviceCallback, Bluetooth/USB/AUX/HDMI/ANC inspection
+├── spatial-audio/         # Android Spatializer API 32+ & Head Tracking API 33+ integration
+├── dolby-integration/     # Licensed Dolby AC-3 / E-AC-3 JOC / AC-4 / HDMI ARC/eARC detector
+├── gradle/                # Version catalog (libs.versions.toml)
+└── .github/workflows/     # Automated CI test + Debug APK workflow (android-build.yml)
+```
+
+## Installation & Building Debug APK
+
+### Prerequisites
+- Android Studio Ladybug / Meerkat or newer
+- JDK 17+
+- Android SDK Platform 36 (`minSdk = 26`, `targetSdk = 36`)
+
+### Build via Command Line
+
+```bash
+# Run all unit and Robolectric tests across modules
+gradle testDebugUnitTest
+
+# Assemble the Debug APK
+gradle :app:assembleDebug
+```
+
+The output APK is generated at:
+`app/build/outputs/apk/debug/app-debug.apk`
+
+Install on a connected device:
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+## Additional Documentation
+
+- [Hardware Compatibility Matrix](docs/HARDWARE_COMPATIBILITY.md)
+- [Future Expansion & Module Guide](docs/FUTURE_UPDATES.md)

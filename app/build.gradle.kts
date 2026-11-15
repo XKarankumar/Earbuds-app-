@@ -3,10 +3,8 @@ import java.time.Duration
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
-  alias(libs.plugins.google.devtools.ksp)
+  alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.secrets)
-  // Google services unused for 100% offline app
-  // alias(libs.plugins.google.services)
 }
 
 android {
@@ -14,11 +12,11 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.fitnesshub.hkprod"
-    minSdk = 24
+    applicationId = "com.aistudio.hometheatre.prok7m"
+    minSdk = 26
     targetSdk = 36
     versionCode = 1
-    versionName = "1.0"
+    versionName = "1.0.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -71,15 +69,13 @@ android {
   }
 }
 
-// Configure the Secrets Gradle Plugin to use .env and .env.example files
-// to match the convention used in Web projects.
 secrets {
   propertiesFileName = ".env"
   defaultPropertiesFileName = ".env.example"
 }
 
 tasks.withType<Test> {
-  failFast = true
+  failFast = false
   timeout.set(Duration.ofMinutes(2))
   testLogging {
     events("passed", "failed", "skipped")
@@ -87,14 +83,16 @@ tasks.withType<Test> {
 }
 
 dependencies {
+  implementation(project(":core"))
+  implementation(project(":device-compatibility"))
+  implementation(project(":audio-engine"))
+  implementation(project(":dj-console"))
+  implementation(project(":rgb-controller"))
+  implementation(project(":spatial-audio"))
+  implementation(project(":dolby-integration"))
+
   implementation(platform(libs.androidx.compose.bom))
   implementation(libs.androidx.activity.compose)
-  // CameraX & ML Kit Barcode Scanning for QR Check-In
-  implementation(libs.androidx.camera.camera2)
-  implementation(libs.androidx.camera.core)
-  implementation(libs.androidx.camera.lifecycle)
-  implementation(libs.androidx.camera.view)
-  implementation(libs.mlkit.barcode.scanning)
   implementation(libs.androidx.compose.material.icons.core)
   implementation(libs.androidx.compose.material.icons.extended)
   implementation(libs.androidx.compose.material3)
@@ -107,26 +105,26 @@ dependencies {
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
   implementation(libs.androidx.navigation.compose)
-  implementation(libs.androidx.room.runtime)
-  implementation(libs.androidx.room.ktx)
-  implementation(libs.androidx.work.runtime.ktx)
-  ksp(libs.androidx.room.compiler)
-  implementation(libs.coil.compose)
-  implementation(libs.okhttp)
-  implementation(libs.zxing.core)
+  implementation(libs.androidx.media3.common)
+  implementation(libs.androidx.media3.exoplayer)
+  implementation(libs.androidx.media3.session)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
+  implementation(libs.kotlinx.serialization.json)
+
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
   testImplementation(libs.robolectric)
+
   androidTestImplementation(platform(libs.androidx.compose.bom))
   androidTestImplementation(libs.androidx.compose.ui.test.junit4)
   androidTestImplementation(libs.androidx.espresso.core)
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.runner)
+
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
 }

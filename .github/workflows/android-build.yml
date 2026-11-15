@@ -1,0 +1,128 @@
+name: Android CI - Build & Test Debug APK
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish Debug APK to GitHub Releases'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Verify Java environment
+        run: |
+          set -euo pipefail
+          java -version
+          JAVA_MAJOR=$(java -version 2>&1 | head -n 1 | sed -n 's/.*version "\([^"]*\)".*/\1/p' | cut -d. -f1)
+          if [ "$JAVA_MAJOR" -lt 17 ]; then
+            echo "::error::Java 17+ is required."
+            exit 1
+          fi
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+
+      - name: Prepare temporary debug keystore
+        run: |
+          set -euo pipefail
+          if [ ! -f "./debug.keystore" ]; then
+            "${JAVA_HOME}/bin/keytool" -genkeypair -v \
+              -keystore ./debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -dname "CN=Android Debug,O=Android,C=US" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 >/dev/null 2>&1
+          fi
+
+      - name: Run all module unit and Robolectric tests
+        id: run_tests
+        run: |
+          set -euo pipefail
+          mkdir -p build-logs
+          gradle testDebugUnitTest --stacktrace --no-daemon 2>&1 | tee build-logs/unit-tests.log
+
+      - name: Build Debug APK
+        id: build_apk
+        run: |
+          set -euo pipefail
+          mkdir -p build-logs
+          gradle :app:assembleDebug --stacktrace --no-daemon 2>&1 | tee build-logs/assemble-debug.log
+
+      - name: Verify Debug APK exists and is non-empty
+        run: |
+          set -euo pipefail
+          APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+          if [ ! -f "$APK_PATH" ] || [ ! -s "$APK_PATH" ]; then
+            echo "::error::Expected Debug APK missing or empty at $APK_PATH"
+            exit 1
+          fi
+          echo "Verified Debug APK: $APK_PATH ($(wc -c < "$APK_PATH") bytes)"
+
+      - name: Upload Build Logs Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-and-test-logs
+          path: |
+            build-logs/
+            **/build/test-results/
+            **/build/reports/tests/
+          if-no-files-found: warn
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ultimate-home-theatre-pro-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Publish Debug APK to GitHub Releases (when requested)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_release == true }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RELEASE_TAG="debug-v1.0.0-build-${GITHUB_RUN_NUMBER}"
+          RELEASE_TITLE="Ultimate Home Theatre Pro Debug #${GITHUB_RUN_NUMBER}"
+          gh release create "$RELEASE_TAG" "app/build/outputs/apk/debug/app-debug.apk" \
+            --target "$GITHUB_SHA" \
+            --title "$RELEASE_TITLE" \
+            --notes "Automated Debug APK build from commit ${GITHUB_SHA}. For testing only." \
+            --latest
+
+      - name: Report Build Summary
+        if: always()
+        run: |
+          {
+            echo "## Ultimate Home Theatre Pro Build Report"
+            echo "- Unit & Integration Tests: ${{ steps.run_tests.outcome }}"
+            echo "- Debug APK Build: ${{ steps.build_apk.outcome }}"
+          } >> "$GITHUB_STEP_SUMMARY"

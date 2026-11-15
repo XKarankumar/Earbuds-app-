@@ -22,6 +22,15 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Fitness Hub"
+rootProject.name = "ultimate-home-theatre-pro"
 
-include(":app")
+include(
+  ":app",
+  ":core",
+  ":device-compatibility",
+  ":audio-engine",
+  ":dj-console",
+  ":rgb-controller",
+  ":spatial-audio",
+  ":dolby-integration",
+)
