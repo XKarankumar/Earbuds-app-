@@ -84,12 +84,13 @@ tasks.withType<Test> {
 
 dependencies {
   implementation(project(":core"))
-  implementation(project(":device-compatibility"))
-  implementation(project(":audio-engine"))
-  implementation(project(":dj-console"))
-  implementation(project(":rgb-controller"))
-  implementation(project(":spatial-audio"))
-  implementation(project(":dolby-integration"))
+  // Unused Home Theatre modules commented out for APK size optimization:
+  // implementation(project(":device-compatibility"))
+  // implementation(project(":audio-engine"))
+  // implementation(project(":dj-console"))
+  // implementation(project(":rgb-controller"))
+  // implementation(project(":spatial-audio"))
+  // implementation(project(":dolby-integration"))
 
   implementation(platform(libs.androidx.compose.bom))
   implementation(libs.androidx.activity.compose)
@@ -105,9 +106,9 @@ dependencies {
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
   implementation(libs.androidx.navigation.compose)
-  implementation(libs.androidx.media3.common)
-  implementation(libs.androidx.media3.exoplayer)
-  implementation(libs.androidx.media3.session)
+  // implementation(libs.androidx.media3.common)
+  // implementation(libs.androidx.media3.exoplayer)
+  // implementation(libs.androidx.media3.session)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.kotlinx.serialization.json)

@@ -1,6 +1,6 @@
 {
-  "name": "Ultimate Home Theatre Pro",
-  "description": "ULTIMATE HOME THEATRE PRO — Modular Android audio engineering suite featuring real-time 10-band DSP EQ, bass & subwoofer enhancement with soft-clipping protection, dual-deck live mixing DJ console with 16 performance pads, 108-effect WLED/ESP32/BLE RGB lighting studio, honest ANC & Dolby Atmos capability detection, and Android Spatializer 3D surround integration.",
+  "name": "Smart Cool & Battery Saver Pro",
+  "description": "ULTIMATE SMART COOL & BATTERY SAVER PRO — iOS Liquid Glass thermal, battery, RAM, and UsageStats monitor for Vivo X300 and Android 8.0+ devices featuring 7 live-preview themes, honest Android Thermal API monitoring, battery diagnostics, Smart Modes, and daily telemetry reports.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

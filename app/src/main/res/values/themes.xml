@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.HomeTheatrePro" parent="android:Theme.DeviceDefault.NoActionBar">
-        <item name="android:windowBackground">@color/splash_bg</item>
+    <style name="Theme.SmartCoolPro" parent="android:Theme.DeviceDefault.Light.NoActionBar">
+        <item name="android:windowBackground">@color/ice_splash_bg</item>
     </style>
 </resources>

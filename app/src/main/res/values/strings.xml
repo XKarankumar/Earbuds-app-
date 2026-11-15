@@ -1,17 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Theatre Pro</string>
-    <string name="app_full_title">ULTIMATE HOME THEATRE PRO</string>
-    <string name="nav_studio">Studio</string>
-    <string name="nav_bass_eq">Bass &amp; EQ</string>
-    <string name="nav_dj">DJ Console</string>
-    <string name="nav_rgb">RGB Studio</string>
-    <string name="nav_system">System</string>
-    <string name="cd_hero_theatre">Luxury acoustic home theatre mastering studio</string>
-    <string name="cd_headphones_preview">Reference audiophile headphones on acoustic stand</string>
+    <string name="app_name">Smart Cool Pro</string>
+    <string name="app_full_title">Smart Cool &amp; Battery Saver Pro</string>
+    <string name="nav_overview">Overview</string>
+    <string name="nav_cooling">Cooling</string>
+    <string name="nav_battery">Battery</string>
+    <string name="nav_performance">Monitor</string>
+    <string name="nav_modes">Modes</string>
+    <string name="nav_settings">Settings</string>
+    <string name="cd_hero_glass">iOS Liquid Glass silver and ice blue wave artwork</string>
+    <string name="cd_cooling_wave">Frosted thermal glass cooling fin illustration</string>
     <string name="cd_back">Navigate back</string>
-    <string name="cd_settings">Open theme and preferences</string>
-    <string name="cd_play_pause">Play or pause audio</string>
-    <string name="cd_load_audio">Load local audio track</string>
-    <string name="safe_volume_warning_title">High Output Level Warning</string>
-    <string name="safe_volume_warning_body">Sustained listening at high volume or boosted software gain can cause hearing fatigue or speaker distortion. Software clipping protection remains active.</string>
+    <string name="cd_open_themes">Open theme and appearance settings</string>
+    <string name="cd_refresh_telemetry">Refresh device battery, thermal, and memory telemetry</string>
+    <string name="cd_battery_saver_shortcut">Open Android Battery Saver controls</string>
+    <string name="usage_access_title">Usage Access Required for App Insights</string>
+    <string name="usage_access_desc">Android requires explicit user consent in Usage Access Settings to display foreground screen time and app standby buckets. Data stays 100% on-device.</string>
+    <string name="honest_thermal_note">Android exposes the real battery thermistor via BatteryManager and OS thermal throttling state via PowerManager (Android 10+). Standard non-root apps cannot read raw CPU die temperature or physically cool hardware.</string>
+    <string name="honest_ram_note">Android manages memory automatically. Closing or force-stopping cached apps does not improve battery life and can increase power draw when apps reload.</string>
 </resources>

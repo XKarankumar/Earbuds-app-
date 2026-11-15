@@ -22,7 +22,7 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "ultimate-home-theatre-pro"
+rootProject.name = "smart-cool-battery-saver-pro"
 
 include(
   ":app",
