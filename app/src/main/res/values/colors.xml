@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ice_splash_bg">#F0F6FC</color>
-    <color name="ice_blue_accent">#0EA5E9</color>
-    <color name="silver_mist">#E2E8F0</color>
-    <color name="midnight_amoled">#000000</color>
-    <color name="ic_launcher_bg">#0D253F</color>
+    <color name="desi_splash_bg">#0B1F3A</color>
+    <color name="desi_gold_accent">#F59E0B</color>
+    <color name="desi_emerald_accent">#14B8A6</color>
+    <color name="ic_launcher_bg">#0B1F3A</color>
 </resources>

@@ -22,15 +22,16 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "smart-cool-battery-saver-pro"
+rootProject.name = "desi-calculator-ai-pro"
 
 include(
   ":app",
-  ":core",
-  ":device-compatibility",
-  ":audio-engine",
-  ":dj-console",
-  ":rgb-controller",
-  ":spatial-audio",
-  ":dolby-integration",
+  // Legacy Home Theatre modules excluded from Desi Calculator AI PRO V2.0 build:
+  // ":core",
+  // ":device-compatibility",
+  // ":audio-engine",
+  // ":dj-console",
+  // ":rgb-controller",
+  // ":spatial-audio",
+  // ":dolby-integration",
 )

@@ -1,4 +1,4 @@
-name: Smart Cool Pro - Android Debug & Release APK
+name: Desi Calculator AI PRO V2.0 - Android Debug & Release APK
 
 on:
   push:
@@ -106,7 +106,7 @@ jobs:
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: smart-cool-battery-saver-pro-debug-apk
+          name: desi-calculator-ai-pro-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
@@ -116,8 +116,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          RELEASE_TAG="debug-v1.0.0-build-${GITHUB_RUN_NUMBER}"
-          RELEASE_TITLE="Smart Cool & Battery Saver Pro Debug #${GITHUB_RUN_NUMBER}"
+          RELEASE_TAG="debug-v2.0.0-build-${GITHUB_RUN_NUMBER}"
+          RELEASE_TITLE="Desi Calculator AI PRO V2.0 Debug #${GITHUB_RUN_NUMBER}"
           gh release create "$RELEASE_TAG" "app/build/outputs/apk/debug/app-debug.apk" \
             --target "$GITHUB_SHA" \
             --title "$RELEASE_TITLE" \
@@ -157,10 +157,10 @@ jobs:
             # Generate an ephemeral CI release keystore when repository secrets are not set
             "${JAVA_HOME}/bin/keytool" -genkeypair -v \
               -keystore ./my-upload-key.jks \
-              -storepass "${{ secrets.STORE_PASSWORD || 'smartcoolci123' }}" \
+              -storepass "${{ secrets.STORE_PASSWORD || 'desicalcci123' }}" \
               -alias upload \
-              -keypass "${{ secrets.KEY_PASSWORD || 'smartcoolci123' }}" \
-              -dname "CN=Smart Cool CI,O=Android,C=US" \
+              -keypass "${{ secrets.KEY_PASSWORD || 'desicalcci123' }}" \
+              -dname "CN=Hardik Kumar,O=Desi Calculator,C=IN" \
               -keyalg RSA \
               -keysize 2048 \
               -validity 10000 >/dev/null 2>&1
@@ -170,8 +170,8 @@ jobs:
       - name: Assemble Release APK
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD || 'smartcoolci123' }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'smartcoolci123' }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD || 'desicalcci123' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'desicalcci123' }}
         run: |
           set -euo pipefail
           gradle :app:assembleRelease --stacktrace --no-daemon
@@ -189,6 +189,6 @@ jobs:
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: smart-cool-battery-saver-pro-release-apk
+          name: desi-calculator-ai-pro-release-apk
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error

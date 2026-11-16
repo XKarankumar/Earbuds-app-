@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/smart_cool_icon_fg_1794747357086"
+        android:drawable="@drawable/desi_calc_icon_fg_1794830689036"
         android:gravity="center" />
 </layer-list>

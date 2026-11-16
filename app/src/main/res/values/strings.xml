@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Smart Cool Pro</string>
-    <string name="app_full_title">Smart Cool &amp; Battery Saver Pro</string>
-    <string name="nav_overview">Overview</string>
-    <string name="nav_cooling">Cooling</string>
-    <string name="nav_battery">Battery</string>
-    <string name="nav_performance">Monitor</string>
-    <string name="nav_modes">Modes</string>
-    <string name="nav_settings">Settings</string>
-    <string name="cd_hero_glass">iOS Liquid Glass silver and ice blue wave artwork</string>
-    <string name="cd_cooling_wave">Frosted thermal glass cooling fin illustration</string>
+    <string name="app_name">Desi Calculator</string>
+    <string name="app_full_title">Desi Calculator AI PRO V2.0</string>
+    <string name="developer_credit">Developed by Hardik Kumar</string>
+    <string name="copyright_notice">© 2026 Hardik Kumar. All Rights Reserved.</string>
+    <string name="nav_dashboard">Home</string>
+    <string name="nav_calculator">Calculator</string>
+    <string name="nav_customers">Khata</string>
+    <string name="nav_ai">AI Smart</string>
+    <string name="nav_sms">SMS</string>
+    <string name="nav_profile">Profile</string>
+    <string name="cd_hero_banner">Desi Calculator AI PRO digital ledger banner</string>
+    <string name="cd_ai_orb">Desi AI smart assistant emblem</string>
+    <string name="cd_developer_avatar">Developer Hardik Kumar avatar</string>
     <string name="cd_back">Navigate back</string>
-    <string name="cd_open_themes">Open theme and appearance settings</string>
-    <string name="cd_refresh_telemetry">Refresh device battery, thermal, and memory telemetry</string>
-    <string name="cd_battery_saver_shortcut">Open Android Battery Saver controls</string>
-    <string name="usage_access_title">Usage Access Required for App Insights</string>
-    <string name="usage_access_desc">Android requires explicit user consent in Usage Access Settings to display foreground screen time and app standby buckets. Data stays 100% on-device.</string>
-    <string name="honest_thermal_note">Android exposes the real battery thermistor via BatteryManager and OS thermal throttling state via PowerManager (Android 10+). Standard non-root apps cannot read raw CPU die temperature or physically cool hardware.</string>
-    <string name="honest_ram_note">Android manages memory automatically. Closing or force-stopping cached apps does not improve battery life and can increase power draw when apps reload.</string>
+    <string name="cd_add_customer">Add new customer</string>
+    <string name="cd_add_transaction">Add Udhar or Jama entry</string>
+    <string name="cd_export_backup">Export or restore ledger backup</string>
+    <string name="sms_consent_title">SMS Permission &amp; Consent</string>
+    <string name="sms_consent_desc">Desi Calculator only sends direct or scheduled SMS reminders when you explicitly enable SMS consent for a customer. You can always use the zero-permission Manual SMS Composer instead.</string>
 </resources>

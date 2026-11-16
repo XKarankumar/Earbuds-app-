@@ -1,398 +1,375 @@
 package com.example
 
-import android.Manifest
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AcUnit
-import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.BatteryChargingFull
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.outlined.AcUnit
-import androidx.compose.material.icons.outlined.Assessment
-import androidx.compose.material.icons.outlined.BatteryChargingFull
-import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material.icons.outlined.Memory
-import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Calculate
+import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Sms
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import com.example.smartcool.ui.components.LiquidGlassBackdrop
-import com.example.smartcool.ui.screens.BatteryScreen
-import com.example.smartcool.ui.screens.CoolingScreen
-import com.example.smartcool.ui.screens.ModesAndReportsScreen
-import com.example.smartcool.ui.screens.OverviewScreen
-import com.example.smartcool.ui.screens.PerformanceScreen
-import com.example.smartcool.ui.screens.SettingsAndThemesScreen
-import com.example.smartcool.ui.theme.LocalLiquidPalette
-import com.example.smartcool.ui.theme.SmartCoolProTheme
-import com.example.smartcool.ui.viewmodel.SmartCoolViewModel
-import kotlinx.serialization.Serializable
+import com.example.desicalc.security.configureAppCheck
+import com.example.desicalc.ui.components.AnimatedSplashOverlay
+import com.example.desicalc.ui.screens.AiAssistantScreen
+import com.example.desicalc.ui.screens.CalculatorScreen
+import com.example.desicalc.ui.screens.CustomersAndLedgerScreen
+import com.example.desicalc.ui.screens.DashboardScreen
+import com.example.desicalc.ui.screens.ProfileAndSettingsScreen
+import com.example.desicalc.ui.screens.SmsAndReportsScreen
+import com.example.desicalc.ui.strings.localizedStrings
+import com.example.desicalc.ui.theme.DesiCalculatorTheme
+import com.example.desicalc.ui.theme.LocalDesiColors
+import com.example.desicalc.ui.viewmodel.DesiViewModel
+import kotlinx.coroutines.flow.emptyFlow
 
-@Serializable
-sealed interface SmartCoolRoute {
-    @Serializable data object Overview : SmartCoolRoute
-    @Serializable data object Cooling : SmartCoolRoute
-    @Serializable data object Battery : SmartCoolRoute
-    @Serializable data object Performance : SmartCoolRoute
-    @Serializable data object Modes : SmartCoolRoute
-    @Serializable data object Settings : SmartCoolRoute
-}
-
-private enum class SmartCoolTab(
-    val route: SmartCoolRoute,
-    val routeKey: String,
-    val labelRes: Int,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector,
-    val showOnCompactBar: Boolean
-) {
-    OVERVIEW(SmartCoolRoute.Overview, "Overview", R.string.nav_overview, Icons.Filled.Dashboard, Icons.Outlined.Dashboard, true),
-    COOLING(SmartCoolRoute.Cooling, "Cooling", R.string.nav_cooling, Icons.Filled.AcUnit, Icons.Outlined.AcUnit, true),
-    BATTERY(SmartCoolRoute.Battery, "Battery", R.string.nav_battery, Icons.Filled.BatteryChargingFull, Icons.Outlined.BatteryChargingFull, true),
-    PERFORMANCE(SmartCoolRoute.Performance, "Performance", R.string.nav_performance, Icons.Filled.Memory, Icons.Outlined.Memory, true),
-    MODES(SmartCoolRoute.Modes, "Modes", R.string.nav_modes, Icons.Filled.Assessment, Icons.Outlined.Assessment, false),
-    SETTINGS(SmartCoolRoute.Settings, "Settings", R.string.nav_settings, Icons.Filled.Tune, Icons.Outlined.Tune, true)
+enum class DesiDestination(val route: String, val icon: ImageVector) {
+    DASHBOARD("dashboard", Icons.Rounded.Dashboard),
+    CALCULATOR("calculator", Icons.Rounded.Calculate),
+    CUSTOMERS("customers", Icons.Rounded.Groups),
+    AI_ASSISTANT("ai_assistant", Icons.Rounded.AutoAwesome),
+    SMS_REPORTS("sms_reports", Icons.Rounded.Sms),
+    PROFILE("profile", Icons.Rounded.Person)
 }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Configure Firebase App Check before UI, ViewModels, or Firebase AI calls
+        configureAppCheck(this, intent)
+
         enableEdgeToEdge()
         setContent {
-            val viewModel: SmartCoolViewModel = viewModel()
-            val settings by viewModel.settings.collectAsStateWithLifecycle()
-
-            SmartCoolProTheme(
-                preset = settings.selectedTheme,
-                customConfig = settings.customTheme
-            ) {
-                SmartCoolAppRoot(viewModel = viewModel)
-            }
+            val viewModel: DesiViewModel = viewModel()
+            DesiCalculatorAppRoot(viewModel = viewModel)
         }
     }
 }
 
 @Composable
-fun SmartCoolAppRoot(viewModel: SmartCoolViewModel) {
+fun DesiCalculatorAppRoot(viewModel: DesiViewModel) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
-    val battery by viewModel.batteryTelemetry.collectAsStateWithLifecycle()
-    val thermal by viewModel.thermalTelemetry.collectAsStateWithLifecycle()
-    val memory by viewModel.memorySnapshot.collectAsStateWithLifecycle()
-    val usage by viewModel.usageInsights.collectAsStateWithLifecycle()
-    val history by viewModel.historySamples.collectAsStateWithLifecycle()
-    val report by viewModel.dailyReport.collectAsStateWithLifecycle()
+    val metrics by viewModel.dashboardMetrics.collectAsStateWithLifecycle()
+    val allCustomers by viewModel.customerSummaries.collectAsStateWithLifecycle()
+    val filteredCustomers by viewModel.filteredCustomers.collectAsStateWithLifecycle()
+    val selectedCustomerId by viewModel.selectedCustomerId.collectAsStateWithLifecycle()
+    val selectedCustomer = remember(allCustomers, selectedCustomerId) {
+        allCustomers.firstOrNull { it.id == selectedCustomerId }
+    }
+    val selectedCustomerTx by remember(selectedCustomerId) {
+        if (selectedCustomerId != null) {
+            viewModel.repository.observeTransactionsForCustomer(selectedCustomerId!!)
+        } else {
+            emptyFlow()
+        }
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRouteString = backStackEntry?.destination?.route.orEmpty()
+    val allTransactions by viewModel.allTransactions.collectAsStateWithLifecycle()
+    val calcHistory by viewModel.calculationHistory.collectAsStateWithLifecycle()
+    val smsLogs by viewModel.smsLogs.collectAsStateWithLifecycle()
+    val aiMessages by viewModel.aiChatMessages.collectAsStateWithLifecycle()
+    val aiUiState by viewModel.aiUiState.collectAsStateWithLifecycle()
+    val activeReport by viewModel.activePeriodReport.collectAsStateWithLifecycle()
+    val reportPeriod by viewModel.reportPeriod.collectAsStateWithLifecycle()
+
+    val searchQuery by viewModel.customerSearch.collectAsStateWithLifecycle()
+    val customerFilter by viewModel.customerFilter.collectAsStateWithLifecycle()
+    val calcMode by viewModel.calcMode.collectAsStateWithLifecycle()
+    val calcExpression by viewModel.calcExpression.collectAsStateWithLifecycle()
+    val calcResult by viewModel.calcResult.collectAsStateWithLifecycle()
+    val calcError by viewModel.calcError.collectAsStateWithLifecycle()
+    val duplicateWarning by viewModel.duplicateWarningPrompt.collectAsStateWithLifecycle()
+    val lastBackupMessage by viewModel.lastBackupMessage.collectAsStateWithLifecycle()
+
+    val strings = remember(settings.language) { localizedStrings(settings.language) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val palette = LocalLiquidPalette.current
-    val lifecycleOwner = LocalLifecycleOwner.current
 
-    val notifPermLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) {}
+    var currentDest by rememberSaveable { mutableStateOf(DesiDestination.DASHBOARD) }
+    var showSplash by rememberSaveable { mutableStateOf(true) }
+
+    val jsonBackupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> uri?.let(viewModel::exportBackupToUri) }
+
+    val csvExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri -> uri?.let(viewModel::exportCsvToUri) }
+
+    val jsonRestoreLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let(viewModel::importBackupOrLegacyFromUri) }
 
     LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
-    }
-
-    DisposableEffect(lifecycleOwner, viewModel) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> viewModel.startMonitoring()
-                Lifecycle.Event.ON_PAUSE -> viewModel.pauseMonitoring()
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
-    LaunchedEffect(viewModel) {
         viewModel.toastEvents.collect { msg ->
             snackbarHostState.showSnackbar(msg)
         }
     }
 
-    fun navigateTopTab(route: SmartCoolRoute) {
-        navController.navigate(route) {
-            popUpTo(SmartCoolRoute.Overview) { saveState = true }
-            launchSingleTop = true
-            restoreState = true
-        }
-    }
+    DesiCalculatorTheme(settings = settings) {
+        val ext = LocalDesiColors.current
 
-    LiquidGlassBackdrop {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val useRail = maxWidth >= 600.dp
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(ext.gradientTop, ext.gradientBottom)))
+        ) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val useRail = maxWidth >= 600.dp
 
-            Scaffold(
-                containerColor = Color.Transparent,
-                contentWindowInsets = WindowInsets.safeDrawing,
-                snackbarHost = { SnackbarHost(snackbarHostState) },
-                bottomBar = {
-                    if (!useRail) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                                .clip(RoundedCornerShape(26.dp))
-                                .background(palette.navGlassSurface)
-                                .border(1.dp, palette.specularTopBorder, RoundedCornerShape(26.dp))
-                        ) {
+                Scaffold(
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    contentWindowInsets = WindowInsets.safeDrawing,
+                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+                    bottomBar = {
+                        if (!useRail) {
                             NavigationBar(
-                                containerColor = Color.Transparent,
-                                tonalElevation = 0.dp
+                                modifier = Modifier.navigationBarsPadding(),
+                                containerColor = ext.cardElevated
                             ) {
-                                SmartCoolTab.entries.filter { it.showOnCompactBar }.forEach { tab ->
-                                    val selected = currentRouteString.contains(tab.routeKey)
-                                    val label = stringResource(id = tab.labelRes)
+                                DesiDestination.entries.forEach { dest ->
+                                    val label = destLabel(dest, strings)
                                     NavigationBarItem(
-                                        selected = selected,
-                                        onClick = { navigateTopTab(tab.route) },
-                                        modifier = Modifier.testTag("nav_${tab.name.lowercase()}"),
-                                        colors = NavigationBarItemDefaults.colors(
-                                            selectedIconColor = palette.primaryAccent,
-                                            selectedTextColor = palette.primaryAccent,
-                                            indicatorColor = palette.primaryAccent.copy(alpha = 0.16f),
-                                            unselectedIconColor = palette.textSecondary,
-                                            unselectedTextColor = palette.textSecondary
-                                        ),
-                                        icon = {
-                                            Icon(
-                                                imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
-                                                contentDescription = label
+                                        selected = currentDest == dest,
+                                        onClick = { currentDest = dest },
+                                        icon = { Icon(dest.icon, contentDescription = label) },
+                                        label = {
+                                            Text(
+                                                text = label,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                         },
-                                        label = { Text(label, maxLines = 1) }
+                                        modifier = Modifier.testTag("nav_${dest.route}")
                                     )
                                 }
                             }
                         }
                     }
-                }
-            ) { innerPadding ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                ) {
-                    if (useRail) {
-                        NavigationRail(
-                            containerColor = palette.navGlassSurface,
-                            modifier = Modifier.border(1.dp, palette.borderStroke)
-                        ) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            SmartCoolTab.entries.forEach { tab ->
-                                val selected = currentRouteString.contains(tab.routeKey)
-                                val label = stringResource(id = tab.labelRes)
-                                NavigationRailItem(
-                                    selected = selected,
-                                    onClick = { navigateTopTab(tab.route) },
-                                    modifier = Modifier.testTag("rail_${tab.name.lowercase()}"),
-                                    colors = NavigationRailItemDefaults.colors(
-                                        selectedIconColor = palette.primaryAccent,
-                                        selectedTextColor = palette.primaryAccent,
-                                        indicatorColor = palette.primaryAccent.copy(alpha = 0.16f),
-                                        unselectedIconColor = palette.textSecondary,
-                                        unselectedTextColor = palette.textSecondary
-                                    ),
-                                    icon = {
-                                        Icon(
-                                            imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
-                                            contentDescription = label
-                                        )
-                                    },
-                                    label = { Text(label) }
-                                )
+                ) { innerPadding ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    ) {
+                        if (useRail) {
+                            NavigationRail(containerColor = ext.cardElevated) {
+                                DesiDestination.entries.forEach { dest ->
+                                    val label = destLabel(dest, strings)
+                                    NavigationRailItem(
+                                        selected = currentDest == dest,
+                                        onClick = { currentDest = dest },
+                                        icon = { Icon(dest.icon, contentDescription = label) },
+                                        label = { Text(label, maxLines = 1) },
+                                        modifier = Modifier.testTag("rail_${dest.route}")
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    Box(modifier = Modifier.weight(1f)) {
-                        NavHost(
-                            navController = navController,
-                            startDestination = SmartCoolRoute.Overview
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.TopCenter
                         ) {
-                            composable<SmartCoolRoute.Overview> {
-                                OverviewScreen(
-                                    settings = settings,
-                                    battery = battery,
-                                    thermal = thermal,
-                                    memory = memory,
-                                    history = history,
-                                    onSelectMode = { mode ->
-                                        viewModel.selectSmartMode(mode)
-                                        if (mode == com.example.smartcool.model.SmartMode.EXTREME_BATTERY_SAVER) {
-                                            navigateTopTab(SmartCoolRoute.Modes)
-                                        }
-                                    },
-                                    onRefresh = { viewModel.refreshAllTelemetry(recordSample = true) },
-                                    onNavigateCooling = { navigateTopTab(SmartCoolRoute.Cooling) },
-                                    onNavigateBattery = { navigateTopTab(SmartCoolRoute.Battery) },
-                                    onNavigatePerformance = { navigateTopTab(SmartCoolRoute.Performance) },
-                                    onNavigateModes = {
-                                        navController.navigate(SmartCoolRoute.Modes) {
-                                            launchSingleTop = true
-                                        }
-                                    },
-                                    onNavigateThemes = { navigateTopTab(SmartCoolRoute.Settings) }
-                                )
-                            }
-                            composable<SmartCoolRoute.Cooling> {
-                                CoolingScreen(
-                                    settings = settings,
-                                    battery = battery,
-                                    thermal = thermal,
-                                    history = history,
-                                    onToggleCoolingMode = {
-                                        val next = if (settings.smartMode == com.example.smartcool.model.SmartMode.COOLING) {
-                                            com.example.smartcool.model.SmartMode.NORMAL
-                                        } else {
-                                            com.example.smartcool.model.SmartMode.COOLING
-                                        }
-                                        viewModel.selectSmartMode(next)
-                                    },
-                                    onClearHistory = { viewModel.clearRecordedHistory() }
-                                )
-                            }
-                            composable<SmartCoolRoute.Battery> {
-                                BatteryScreen(
-                                    settings = settings,
-                                    battery = battery,
-                                    history = history
-                                )
-                            }
-                            composable<SmartCoolRoute.Performance> {
-                                PerformanceScreen(
-                                    memory = memory,
-                                    thermal = thermal,
-                                    usage = usage,
-                                    onRefresh = { viewModel.refreshAllTelemetry(recordSample = false) }
-                                )
-                            }
-                            composable<SmartCoolRoute.Modes> {
-                                BackHandler { navController.popBackStack() }
-                                Column(modifier = Modifier.fillMaxSize()) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        IconButton(
-                                            onClick = { navController.popBackStack() },
-                                            modifier = Modifier.testTag("modes_back_btn")
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                                contentDescription = stringResource(id = R.string.cd_back),
-                                                tint = palette.textPrimary
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "Smart Modes & Reports",
-                                            style = MaterialTheme.typography.titleLarge,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = palette.textPrimary
-                                        )
-                                    }
-                                    ModesAndReportsScreen(
+                            Crossfade(
+                                targetState = currentDest,
+                                animationSpec = tween(220),
+                                modifier = Modifier.widthIn(max = 840.dp),
+                                label = "mainScreenTransition"
+                            ) { dest ->
+                                when (dest) {
+                                    DesiDestination.DASHBOARD -> DashboardScreen(
+                                        metrics = metrics,
+                                        customers = allCustomers,
+                                        recentTransactions = allTransactions,
                                         settings = settings,
-                                        battery = battery,
-                                        report = report,
-                                        onSelectMode = viewModel::selectSmartMode,
-                                        onSelectTheme = viewModel::selectTheme
+                                        strings = strings,
+                                        onOpenCalculator = { currentDest = DesiDestination.CALCULATOR },
+                                        onOpenCustomers = { currentDest = DesiDestination.CUSTOMERS },
+                                        onSelectCustomer = { cId ->
+                                            viewModel.selectCustomer(cId)
+                                            currentDest = DesiDestination.CUSTOMERS
+                                        },
+                                        onOpenAiWithPrompt = { prompt ->
+                                            currentDest = DesiDestination.AI_ASSISTANT
+                                            if (prompt.isNotBlank()) viewModel.sendAiMessage(prompt)
+                                        },
+                                        onOpenSmsReports = { currentDest = DesiDestination.SMS_REPORTS }
+                                    )
+
+                                    DesiDestination.CALCULATOR -> CalculatorScreen(
+                                        activeMode = calcMode,
+                                        expression = calcExpression,
+                                        result = calcResult,
+                                        error = calcError,
+                                        history = calcHistory,
+                                        language = settings.language,
+                                        onSelectMode = viewModel::setCalculatorMode,
+                                        onAppendToken = viewModel::appendCalcToken,
+                                        onBackspace = viewModel::backspaceCalc,
+                                        onClear = viewModel::clearCalc,
+                                        onEvaluate = viewModel::evaluateAndSaveCalc,
+                                        onSaveSpecialized = viewModel::saveSpecializedCalculation,
+                                        onReuseHistory = viewModel::reuseHistoryExpression,
+                                        onClearHistory = viewModel::clearCalculationHistory,
+                                        onAskAiCommand = { cmd ->
+                                            currentDest = DesiDestination.AI_ASSISTANT
+                                            viewModel.sendAiMessage(cmd)
+                                        }
+                                    )
+
+                                    DesiDestination.CUSTOMERS -> CustomersAndLedgerScreen(
+                                        customers = filteredCustomers,
+                                        selectedCustomer = selectedCustomer,
+                                        selectedCustomerTransactions = selectedCustomerTx,
+                                        searchQuery = searchQuery,
+                                        activeFilter = customerFilter,
+                                        language = settings.language,
+                                        strings = strings,
+                                        hasSmsPermission = viewModel.smsManager.hasSendSmsPermission(),
+                                        buildSmsPreview = viewModel::buildSmsPreview,
+                                        onSearchChange = viewModel::setCustomerSearch,
+                                        onFilterChange = viewModel::setCustomerFilter,
+                                        onSelectCustomer = viewModel::selectCustomer,
+                                        onAddCustomer = viewModel::addCustomer,
+                                        onUpdateCustomer = viewModel::updateCustomer,
+                                        onDeleteCustomer = viewModel::deleteCustomer,
+                                        onAddTransaction = { cId, type, amt, desc, partial ->
+                                            viewModel.requestAddTransaction(cId, type, amt, desc, partial)
+                                        },
+                                        onUpdateTransaction = viewModel::updateTransaction,
+                                        onDeleteTransaction = viewModel::deleteTransaction,
+                                        onOpenManualSms = viewModel::openManualSmsComposer,
+                                        onSendDirectSms = viewModel::sendDirectSms
+                                    )
+
+                                    DesiDestination.AI_ASSISTANT -> AiAssistantScreen(
+                                        messages = aiMessages,
+                                        aiUiState = aiUiState,
+                                        engineMode = settings.aiEngineMode,
+                                        strings = strings,
+                                        decodePendingAction = viewModel::decodePendingAction,
+                                        onSelectEngineMode = viewModel::setAiEngineMode,
+                                        onSendMessage = viewModel::sendAiMessage,
+                                        onConfirmPendingTransaction = viewModel::confirmAiPendingTransaction,
+                                        onClearChat = viewModel::clearAiChat
+                                    )
+
+                                    DesiDestination.SMS_REPORTS -> SmsAndReportsScreen(
+                                        customers = allCustomers,
+                                        smsLogs = smsLogs,
+                                        report = activeReport,
+                                        selectedPeriod = reportPeriod,
+                                        settings = settings,
+                                        hasSmsPermission = viewModel.smsManager.hasSendSmsPermission(),
+                                        buildSmsPreview = viewModel::buildSmsPreview,
+                                        onSelectPeriod = viewModel::setReportPeriod,
+                                        onOpenManualSms = viewModel::openManualSmsComposer,
+                                        onSendDirectSms = viewModel::sendDirectSms,
+                                        onSaveTemplates = viewModel::updateSmsTemplates,
+                                        onTriggerScheduledReminders = viewModel::triggerScheduledRemindersNow,
+                                        onExportCsv = { csvExportLauncher.launch("desi_calculator_ledger.csv") },
+                                        onExportJsonBackup = { jsonBackupLauncher.launch("desi_calculator_backup_v2.json") }
+                                    )
+
+                                    DesiDestination.PROFILE -> ProfileAndSettingsScreen(
+                                        settings = settings,
+                                        hasNotificationPermission = viewModel.notificationManager.hasNotificationPermission(),
+                                        lastBackupMessage = lastBackupMessage,
+                                        onSelectTheme = viewModel::setThemePreset,
+                                        onSelectCustomAccent = viewModel::setCustomAccentColor,
+                                        onSelectCustomBg = viewModel::setCustomBackgroundStyle,
+                                        onSelectLanguage = viewModel::setLanguage,
+                                        onUpdateProfile = viewModel::updateProfile,
+                                        onUpdateProfilePhoto = viewModel::updateProfilePhoto,
+                                        onUpdateNotifications = viewModel::updateNotificationSettings,
+                                        onExportJsonBackup = { jsonBackupLauncher.launch("desi_calculator_backup_v2.json") },
+                                        onExportCsv = { csvExportLauncher.launch("desi_calculator_ledger.csv") },
+                                        onImportJsonFile = { jsonRestoreLauncher.launch(arrayOf("application/json", "*/*")) },
+                                        onImportRawJsonText = viewModel::importBackupOrLegacyRawJson
                                     )
                                 }
-                            }
-                            composable<SmartCoolRoute.Settings> {
-                                SettingsAndThemesScreen(
-                                    settings = settings,
-                                    battery = battery,
-                                    memory = memory,
-                                    hasNotificationPermission = viewModel.hasNotificationPermission(),
-                                    onSelectTheme = viewModel::selectTheme,
-                                    onUpdateCustomTheme = viewModel::updateCustomTheme,
-                                    onSetUseFahrenheit = viewModel::setUseFahrenheit,
-                                    onSetHighTempAlert = viewModel::setHighTempAlert,
-                                    onSetHighTempThreshold = viewModel::setHighTempThreshold,
-                                    onSetChargingHeatAlert = viewModel::setChargingHeatAlert,
-                                    onSetLowBatteryAlert = viewModel::setLowBatteryAlert,
-                                    onSetLowBatteryThreshold = viewModel::setLowBatteryThreshold,
-                                    onSetMonitorInterval = viewModel::setMonitorIntervalSeconds,
-                                    onSendTestNotification = viewModel::sendTestNotification,
-                                    onClearHistory = viewModel::clearRecordedHistory
-                                )
                             }
                         }
                     }
                 }
             }
+
+            // Duplicate Transaction Safety Dialog
+            duplicateWarning?.let { dup ->
+                AlertDialog(
+                    onDismissRequest = viewModel::dismissDuplicatePrompt,
+                    title = { Text("Possible Duplicate Entry") },
+                    text = { Text(dup.duplicateReason ?: "A matching transaction was recorded recently. Save anyway?") },
+                    confirmButton = {
+                        Button(onClick = viewModel::confirmDuplicatePromptSave) { Text("Save Anyway") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = viewModel::dismissDuplicatePrompt) { Text("Cancel") }
+                    }
+                )
+            }
+
+            AnimatedSplashOverlay(
+                visible = showSplash,
+                onFinished = { showSplash = false }
+            )
         }
+    }
+}
+
+private fun destLabel(dest: DesiDestination, strings: com.example.desicalc.ui.strings.DesiStrings): String {
+    return when (dest) {
+        DesiDestination.DASHBOARD -> strings.navHome
+        DesiDestination.CALCULATOR -> strings.navCalc
+        DesiDestination.CUSTOMERS -> strings.navKhata
+        DesiDestination.AI_ASSISTANT -> strings.navAi
+        DesiDestination.SMS_REPORTS -> strings.navSmsReports
+        DesiDestination.PROFILE -> strings.navProfile
     }
 }

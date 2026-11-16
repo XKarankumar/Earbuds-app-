@@ -4,6 +4,8 @@ plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.kotlin.serialization)
+  alias(libs.plugins.ksp)
+  alias(libs.plugins.google.services)
   alias(libs.plugins.secrets)
 }
 
@@ -12,11 +14,11 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.hometheatre.prok7m"
+    applicationId = "com.aistudio.desicalc.hkxpmq"
     minSdk = 26
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0.0"
+    versionCode = 2
+    versionName = "2.0.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -83,15 +85,6 @@ tasks.withType<Test> {
 }
 
 dependencies {
-  implementation(project(":core"))
-  // Unused Home Theatre modules commented out for APK size optimization:
-  // implementation(project(":device-compatibility"))
-  // implementation(project(":audio-engine"))
-  // implementation(project(":dj-console"))
-  // implementation(project(":rgb-controller"))
-  // implementation(project(":spatial-audio"))
-  // implementation(project(":dolby-integration"))
-
   implementation(platform(libs.androidx.compose.bom))
   implementation(libs.androidx.activity.compose)
   implementation(libs.androidx.compose.material.icons.core)
@@ -106,12 +99,26 @@ dependencies {
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
   implementation(libs.androidx.navigation.compose)
-  // implementation(libs.androidx.media3.common)
-  // implementation(libs.androidx.media3.exoplayer)
-  // implementation(libs.androidx.media3.session)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.kotlinx.serialization.json)
+
+  // Room Database + KSP
+  implementation(libs.androidx.room.runtime)
+  implementation(libs.androidx.room.ktx)
+  ksp(libs.androidx.room.compiler)
+
+  // WorkManager for Scheduled Reminders & Daily Summaries
+  implementation(libs.androidx.work.runtime.ktx)
+
+  // Firebase AI Logic + App Check
+  implementation(platform(libs.firebase.bom))
+  implementation(libs.firebase.ai)
+  implementation(libs.firebase.appcheck.recaptcha)
+  implementation(libs.firebase.appcheck.debug)
+
+  // Image loading (Photo Picker avatars)
+  implementation(libs.coil.compose)
 
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
@@ -119,6 +126,8 @@ dependencies {
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
   testImplementation(libs.robolectric)
+  testImplementation(libs.androidx.room.testing)
+  testImplementation(libs.androidx.work.testing)
 
   androidTestImplementation(platform(libs.androidx.compose.bom))
   androidTestImplementation(libs.androidx.compose.ui.test.junit4)
