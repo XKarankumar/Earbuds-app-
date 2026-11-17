@@ -69,7 +69,11 @@ class DesiNotificationManager(private val context: Context) {
     }
 
     fun showTransactionNotification(title: String, body: String) {
-        if (!hasNotificationPermission()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
         val openIntent = PendingIntent.getActivity(
             context,
             101,
@@ -88,9 +92,10 @@ class DesiNotificationManager(private val context: Context) {
             .setAutoCancel(true)
             .build()
 
-        runCatching {
+        try {
             NotificationManagerCompat.from(context)
                 .notify((System.currentTimeMillis() % 100_000).toInt(), notification)
+        } catch (_: SecurityException) {
         }
     }
 
@@ -100,7 +105,11 @@ class DesiNotificationManager(private val context: Context) {
         smsMessage: String,
         notificationId: Int
     ) {
-        if (!hasNotificationPermission()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
 
         val openAppIntent = PendingIntent.getActivity(
             context,
@@ -138,13 +147,18 @@ class DesiNotificationManager(private val context: Context) {
             )
         }
 
-        runCatching {
+        try {
             NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+        } catch (_: SecurityException) {
         }
     }
 
     fun showDailySummaryNotification(title: String, summaryBody: String) {
-        if (!hasNotificationPermission()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
         val openIntent = PendingIntent.getActivity(
             context,
             9001,
@@ -163,8 +177,9 @@ class DesiNotificationManager(private val context: Context) {
             .setAutoCancel(true)
             .build()
 
-        runCatching {
+        try {
             NotificationManagerCompat.from(context).notify(9001, notification)
+        } catch (_: SecurityException) {
         }
     }
 }

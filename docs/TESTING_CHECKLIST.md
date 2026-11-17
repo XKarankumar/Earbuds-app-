@@ -1,7 +1,7 @@
 # Testing Checklist — Desi Calculator AI PRO V2.0
 
 ## Automated Tests (JVM + Robolectric + Web ESM)
-Executed `gradle :app:testDebugUnitTest` — **11/11 tests PASSED**:
+Executed `gradle :app:testDebugUnitTest` — **12/12 tests PASSED**:
 - [x] `ExampleUnitTest`: Baseline arithmetic sanity check (`addition_isCorrect` PASSED).
 - [x] `CalculatorEngineTest` (5/5 PASSED): Expression precedence, brackets, `%`, division-by-zero handling, GST Inclusive/Exclusive + CGST/SGST split, stacked Discounts, Profit/Loss, and Indian unit conversions (*Quintal*, *Gaj*).
 - [x] `DesiLedgerRobolectricTest` (5/5 PASSED):
@@ -10,6 +10,8 @@ Executed `gradle :app:testDebugUnitTest` — **11/11 tests PASSED**:
   - [x] Non-destructive legacy `custom_hisab_calculator.html` JSON import preserving existing records.
   - [x] Bilingual Hindi/English Offline Smart Engine command parsing (`"Rahul ko 500 rupaye udhar diye"`, `"Kis customer ka sabse zyada baki hai?"`, `"Aaj ka total hisab batao"`) without silent writes.
   - [x] App metadata & identity verification (`app_name`, version `2.0.0`).
+- [x] `MainActivityLaunchRobolectricTest` (1/1 PASSED on SDK 36): Launches `MainActivity`, waits for splash transition, tests calculator pad (`7 + 3 = 10`) & modes, adds customer `"Ramesh"`, records `₹500` Udhar entry via `DesiModalDialog`, and navigates across AI Assistant, SMS & Reports, Profile & Settings, and Dashboard screens cleanly.
+- [x] Android Lint (`lintDebug`): 0 errors (`MissingPermission`, deprecated icon/locale, and `DefaultLocale` checks resolved).
 - [x] Web Edition (`web/js/*.js`): ES module syntax & runtime module logic verified across all 6 JS modules.
 
 ## Manual Verification Checklist (Android & Web)

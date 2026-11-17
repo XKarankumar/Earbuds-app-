@@ -7,10 +7,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,7 +31,6 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Sms
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -67,6 +68,7 @@ import com.example.desicalc.model.TransactionType
 import com.example.desicalc.model.formatInr
 import com.example.desicalc.ui.components.CustomerAvatar
 import com.example.desicalc.ui.components.DesiCard
+import com.example.desicalc.ui.components.DesiModalDialog
 import com.example.desicalc.ui.strings.DesiStrings
 import com.example.desicalc.ui.theme.LocalDesiColors
 import com.example.desicalc.ui.theme.MonoFontFamily
@@ -99,33 +101,35 @@ fun CustomersAndLedgerScreen(
     var showCustomerDialog by remember { mutableStateOf(false) }
     var editingCustomer by remember { mutableStateOf<CustomerLedgerSummary?>(null) }
 
-    if (selectedCustomer != null) {
-        BackHandler { onSelectCustomer(null) }
-        CustomerLedgerDetailView(
-            customer = selectedCustomer,
-            transactions = selectedCustomerTransactions,
-            strings = strings,
-            hasSmsPermission = hasSmsPermission,
-            buildSmsPreview = buildSmsPreview,
-            onBack = { onSelectCustomer(null) },
-            onEditCustomer = {
-                editingCustomer = selectedCustomer
-                showCustomerDialog = true
-            },
-            onDeleteCustomer = { deleteTx -> onDeleteCustomer(selectedCustomer.id, deleteTx) },
-            onAddTransaction = { type, amount, desc, partial ->
-                onAddTransaction(selectedCustomer.id, type, amount, desc, partial)
-            },
-            onUpdateTransaction = onUpdateTransaction,
-            onDeleteTransaction = onDeleteTransaction,
-            onOpenManualSms = onOpenManualSms,
-            onSendDirectSms = onSendDirectSms,
-            modifier = modifier
-        )
-    } else {
-        Scaffold(
-            modifier = modifier.fillMaxSize(),
-            containerColor = Color.Transparent,
+    Box(modifier = modifier.fillMaxSize()) {
+        if (selectedCustomer != null) {
+            BackHandler { onSelectCustomer(null) }
+            CustomerLedgerDetailView(
+                customer = selectedCustomer,
+                transactions = selectedCustomerTransactions,
+                strings = strings,
+                hasSmsPermission = hasSmsPermission,
+                buildSmsPreview = buildSmsPreview,
+                onBack = { onSelectCustomer(null) },
+                onEditCustomer = {
+                    editingCustomer = selectedCustomer
+                    showCustomerDialog = true
+                },
+                onDeleteCustomer = { deleteTx -> onDeleteCustomer(selectedCustomer.id, deleteTx) },
+                onAddTransaction = { type, amount, desc, partial ->
+                    onAddTransaction(selectedCustomer.id, type, amount, desc, partial)
+                },
+                onUpdateTransaction = onUpdateTransaction,
+                onDeleteTransaction = onDeleteTransaction,
+                onOpenManualSms = onOpenManualSms,
+                onSendDirectSms = onSendDirectSms,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                containerColor = Color.Transparent,
+                contentWindowInsets = WindowInsets(0),
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = {
@@ -198,20 +202,21 @@ fun CustomersAndLedgerScreen(
         }
     }
 
-    if (showCustomerDialog) {
-        CustomerFormDialog(
-            existing = editingCustomer,
-            onDismiss = { showCustomerDialog = false },
-            onSave = { name, mobile, address, notes, photoUri, autoSms, consent, intervalDays ->
-                val target = editingCustomer
-                if (target == null) {
-                    onAddCustomer(name, mobile, address, notes, photoUri, autoSms, consent, intervalDays)
-                } else {
-                    onUpdateCustomer(target, name, mobile, address, notes, photoUri, autoSms, consent, intervalDays)
+        if (showCustomerDialog) {
+            CustomerFormDialog(
+                existing = editingCustomer,
+                onDismiss = { showCustomerDialog = false },
+                onSave = { name, mobile, address, notes, photoUri, autoSms, consent, intervalDays ->
+                    val target = editingCustomer
+                    if (target == null) {
+                        onAddCustomer(name, mobile, address, notes, photoUri, autoSms, consent, intervalDays)
+                    } else {
+                        onUpdateCustomer(target, name, mobile, address, notes, photoUri, autoSms, consent, intervalDays)
+                    }
+                    showCustomerDialog = false
                 }
-                showCustomerDialog = false
-            }
-        )
+            )
+        }
     }
 }
 
@@ -308,13 +313,14 @@ private fun CustomerLedgerDetailView(
         ActivityResultContracts.RequestPermission()
     ) { }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .testTag("customer_ledger_detail"),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("customer_ledger_detail"),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
         item {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -517,105 +523,102 @@ private fun CustomerLedgerDetailView(
         )
     }
 
-    if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete Customer?") },
-            text = {
+        if (showDeleteConfirm) {
+            DesiModalDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = "Delete Customer?",
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            onDeleteCustomer(true)
+                            showDeleteConfirm = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = ext.udharRed)
+                    ) { Text("Delete Permanently") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                }
+            ) {
                 Text("Deleting ${customer.name} will also delete ${customer.transactionCount} ledger entries. Consider exporting a JSON backup first.")
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onDeleteCustomer(true)
-                        showDeleteConfirm = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = ext.udharRed)
-                ) { Text("Delete Permanently") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
             }
-        )
-    }
-
-    if (showSmsDialog) {
-        var selectedTemplate by remember { mutableStateOf(SmsTemplateType.REMINDER) }
-        var messageText by remember {
-            mutableStateOf(buildSmsPreview(customer, SmsTemplateType.REMINDER, abs(customer.netBalance)))
         }
-        var consentChecked by remember { mutableStateOf(customer.smsConsentGranted) }
 
-        AlertDialog(
-            onDismissRequest = { showSmsDialog = false },
-            title = { Text("SMS to ${customer.name}") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(
-                            listOf(
-                                SmsTemplateType.REMINDER,
-                                SmsTemplateType.UDHAR_CONFIRM,
-                                SmsTemplateType.JAMA_CONFIRM,
-                                SmsTemplateType.BALANCE_SUMMARY
-                            )
-                        ) { tpl ->
-                            FilterChip(
-                                selected = selectedTemplate == tpl,
+        if (showSmsDialog) {
+            var selectedTemplate by remember { mutableStateOf(SmsTemplateType.REMINDER) }
+            var messageText by remember {
+                mutableStateOf(buildSmsPreview(customer, SmsTemplateType.REMINDER, abs(customer.netBalance)))
+            }
+            var consentChecked by remember { mutableStateOf(customer.smsConsentGranted) }
+
+            DesiModalDialog(
+                onDismissRequest = { showSmsDialog = false },
+                title = "SMS to ${customer.name}",
+                confirmButton = {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Button(
+                            onClick = {
+                                onOpenManualSms(customer, customer.mobile, selectedTemplate, messageText)
+                                showSmsDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Open SMS Composer (Safe)") }
+                        if (consentChecked) {
+                            OutlinedButton(
                                 onClick = {
-                                    selectedTemplate = tpl
-                                    messageText = buildSmsPreview(customer, tpl, abs(customer.netBalance))
+                                    if (hasSmsPermission) {
+                                        onSendDirectSms(customer, customer.mobile, selectedTemplate, messageText, true)
+                                        showSmsDialog = false
+                                    } else {
+                                        smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
+                                    }
                                 },
-                                label = { Text(tpl.titleEn) }
-                            )
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(if (hasSmsPermission) "Send Direct SMS" else "Grant SEND_SMS Permission")
+                            }
                         }
                     }
-                    OutlinedTextField(
-                        value = messageText,
-                        onValueChange = { messageText = it },
-                        label = { Text("SMS Message") },
-                        minLines = 3,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = consentChecked, onCheckedChange = { consentChecked = it })
-                        Text(
-                            "I authorize sending this SMS directly",
-                            style = MaterialTheme.typography.bodyMedium
+                },
+                dismissButton = {
+                    TextButton(onClick = { showSmsDialog = false }) { Text("Close") }
+                }
+            ) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(
+                        listOf(
+                            SmsTemplateType.REMINDER,
+                            SmsTemplateType.UDHAR_CONFIRM,
+                            SmsTemplateType.JAMA_CONFIRM,
+                            SmsTemplateType.BALANCE_SUMMARY
+                        )
+                    ) { tpl ->
+                        FilterChip(
+                            selected = selectedTemplate == tpl,
+                            onClick = {
+                                selectedTemplate = tpl
+                                messageText = buildSmsPreview(customer, tpl, abs(customer.netBalance))
+                            },
+                            label = { Text(tpl.titleEn) }
                         )
                     }
                 }
-            },
-            confirmButton = {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Button(
-                        onClick = {
-                            onOpenManualSms(customer, customer.mobile, selectedTemplate, messageText)
-                            showSmsDialog = false
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Open SMS Composer (Safe)") }
-                    if (consentChecked) {
-                        OutlinedButton(
-                            onClick = {
-                                if (hasSmsPermission) {
-                                    onSendDirectSms(customer, customer.mobile, selectedTemplate, messageText, true)
-                                    showSmsDialog = false
-                                } else {
-                                    smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(if (hasSmsPermission) "Send Direct SMS" else "Grant SEND_SMS Permission")
-                        }
-                    }
+                OutlinedTextField(
+                    value = messageText,
+                    onValueChange = { messageText = it },
+                    label = { Text("SMS Message") },
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = consentChecked, onCheckedChange = { consentChecked = it })
+                    Text(
+                        "I authorize sending this SMS directly",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSmsDialog = false }) { Text("Close") }
             }
-        )
+        }
     }
 }
 
@@ -638,93 +641,9 @@ private fun CustomerFormDialog(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri -> pickedPhotoUri = uri }
 
-    AlertDialog(
+    DesiModalDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existing == null) "Add New Customer" else "Edit Customer") },
-        text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item {
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Customer Name *") },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("dialog_customer_name")
-                    )
-                }
-                item {
-                    OutlinedTextField(
-                        value = mobile,
-                        onValueChange = { mobile = it },
-                        label = { Text("Mobile Number") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("dialog_customer_mobile")
-                    )
-                }
-                item {
-                    OutlinedTextField(
-                        value = address,
-                        onValueChange = { address = it },
-                        label = { Text("Address / Shop") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                item {
-                    OutlinedTextField(
-                        value = notes,
-                        onValueChange = { notes = it },
-                        label = { Text("Notes") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                item {
-                    OutlinedButton(
-                        onClick = {
-                            photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Rounded.PhotoCamera, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (pickedPhotoUri != null) "Photo Selected ✓" else "Pick Profile Photo (Photo Picker)")
-                    }
-                }
-                item {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Scheduled SMS Reminders", style = MaterialTheme.typography.bodyMedium)
-                        Switch(checked = autoSmsEnabled, onCheckedChange = { autoSmsEnabled = it })
-                    }
-                }
-                if (autoSmsEnabled) {
-                    item {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = smsConsent, onCheckedChange = { smsConsent = it })
-                            Text("Customer & owner consent granted for auto-reminders", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                    item {
-                        OutlinedTextField(
-                            value = reminderDays,
-                            onValueChange = { reminderDays = it.filter { ch -> ch.isDigit() } },
-                            label = { Text("Reminder Interval (Days)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            }
-        },
+        title = if (existing == null) "Add New Customer" else "Edit Customer",
         confirmButton = {
             Button(
                 onClick = {
@@ -747,7 +666,72 @@ private fun CustomerFormDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
-    )
+    ) {
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Customer Name *") },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("dialog_customer_name")
+        )
+        OutlinedTextField(
+            value = mobile,
+            onValueChange = { mobile = it },
+            label = { Text("Mobile Number") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("dialog_customer_mobile")
+        )
+        OutlinedTextField(
+            value = address,
+            onValueChange = { address = it },
+            label = { Text("Address / Shop") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = notes,
+            onValueChange = { notes = it },
+            label = { Text("Notes") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedButton(
+            onClick = {
+                photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Rounded.PhotoCamera, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(if (pickedPhotoUri != null) "Photo Selected ✓" else "Pick Profile Photo (Photo Picker)")
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Scheduled SMS Reminders", style = MaterialTheme.typography.bodyMedium)
+            Switch(checked = autoSmsEnabled, onCheckedChange = { autoSmsEnabled = it })
+        }
+        if (autoSmsEnabled) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = smsConsent, onCheckedChange = { smsConsent = it })
+                Text("Customer & owner consent granted for auto-reminders", style = MaterialTheme.typography.labelSmall)
+            }
+            OutlinedTextField(
+                value = reminderDays,
+                onValueChange = { reminderDays = it.filter { ch -> ch.isDigit() } },
+                label = { Text("Reminder Interval (Days)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
 }
 
 @Composable
@@ -764,46 +748,9 @@ private fun TransactionEntryDialog(
     var desc by remember { mutableStateOf(initialDescription) }
     var isPartial by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    DesiModalDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isEdit) "Edit Transaction" else selectedType.labelEn) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(TransactionType.entries) { t ->
-                        FilterChip(
-                            selected = selectedType == t,
-                            onClick = { selectedType = t },
-                            label = { Text(t.labelEn) }
-                        )
-                    }
-                }
-                OutlinedTextField(
-                    value = amountStr,
-                    onValueChange = { amountStr = it },
-                    label = { Text("Amount (₹) *") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("tx_amount_input")
-                )
-                OutlinedTextField(
-                    value = desc,
-                    onValueChange = { desc = it },
-                    label = { Text("Description / Item Note") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("tx_desc_input")
-                )
-                if (!isEdit && (selectedType == TransactionType.JAMA_RECEIVED || selectedType == TransactionType.PAYMENT_MADE)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = isPartial, onCheckedChange = { isPartial = it })
-                        Text("Mark as Partial Payment", style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-            }
-        },
+        title = if (isEdit) "Edit Transaction" else selectedType.labelEn,
         confirmButton = {
             Button(
                 onClick = {
@@ -818,5 +765,39 @@ private fun TransactionEntryDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
-    )
+    ) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(TransactionType.entries) { t ->
+                FilterChip(
+                    selected = selectedType == t,
+                    onClick = { selectedType = t },
+                    label = { Text(t.labelEn) }
+                )
+            }
+        }
+        OutlinedTextField(
+            value = amountStr,
+            onValueChange = { amountStr = it },
+            label = { Text("Amount (₹) *") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("tx_amount_input")
+        )
+        OutlinedTextField(
+            value = desc,
+            onValueChange = { desc = it },
+            label = { Text("Description / Item Note") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("tx_desc_input")
+        )
+        if (!isEdit && (selectedType == TransactionType.JAMA_RECEIVED || selectedType == TransactionType.PAYMENT_MADE)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = isPartial, onCheckedChange = { isPartial = it })
+                Text("Mark as Partial Payment", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
 }

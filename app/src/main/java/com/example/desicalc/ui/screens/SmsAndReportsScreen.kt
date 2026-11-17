@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.ScheduleSend
+import androidx.compose.material.icons.automirrored.rounded.ScheduleSend
 import androidx.compose.material.icons.rounded.Sms
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -278,7 +278,7 @@ fun SmsAndReportsScreen(
                                 onClick = onTriggerScheduledReminders,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(Icons.Rounded.ScheduleSend, contentDescription = null)
+                                Icon(Icons.AutoMirrored.Rounded.ScheduleSend, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Run Scheduled Reminder Check Now")
                             }

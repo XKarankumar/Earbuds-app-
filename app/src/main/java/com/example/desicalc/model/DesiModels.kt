@@ -209,7 +209,7 @@ sealed interface AiUiState {
 }
 
 fun formatInr(amount: Double, includeSymbol: Boolean = true): String {
-    val symbols = DecimalFormatSymbols(Locale("en", "IN"))
+    val symbols = DecimalFormatSymbols(Locale.Builder().setLanguage("en").setRegion("IN").build())
     val pattern = if (abs(amount % 1.0) < 0.005) "#,##,##0" else "#,##,##0.00"
     val formatter = DecimalFormat(pattern, symbols)
     val absFormatted = formatter.format(abs(amount))

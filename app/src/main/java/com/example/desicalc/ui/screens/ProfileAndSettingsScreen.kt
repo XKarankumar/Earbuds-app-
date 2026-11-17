@@ -31,7 +31,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Restore
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -64,6 +63,7 @@ import com.example.desicalc.model.AppThemePreset
 import com.example.desicalc.model.CustomBackgroundStyle
 import com.example.desicalc.ui.components.CopyrightFooter
 import com.example.desicalc.ui.components.DesiCard
+import com.example.desicalc.ui.components.DesiModalDialog
 import java.io.File
 
 @Composable
@@ -107,13 +107,14 @@ fun ProfileAndSettingsScreen(
         )
     }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .testTag("profile_settings_screen"),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("profile_settings_screen"),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
         // Business & Developer Profile Card
         item {
             DesiCard {
@@ -381,14 +382,25 @@ fun ProfileAndSettingsScreen(
         }
 
         item { CopyrightFooter() }
-    }
+        }
 
-    if (showPasteMigrationDialog) {
-        var jsonInput by remember { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = { showPasteMigrationDialog = false },
-            title = { Text("Migrate Legacy HTML Data") },
-            text = {
+        if (showPasteMigrationDialog) {
+            var jsonInput by remember { mutableStateOf("") }
+            DesiModalDialog(
+                onDismissRequest = { showPasteMigrationDialog = false },
+                title = "Migrate Legacy HTML Data",
+                confirmButton = {
+                    Button(onClick = {
+                        if (jsonInput.isNotBlank()) {
+                            onImportRawJsonText(jsonInput)
+                            showPasteMigrationDialog = false
+                        }
+                    }) { Text("Migrate Safely") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showPasteMigrationDialog = false }) { Text("Cancel") }
+                }
+            ) {
                 OutlinedTextField(
                     value = jsonInput,
                     onValueChange = { jsonInput = it },
@@ -396,19 +408,8 @@ fun ProfileAndSettingsScreen(
                     minLines = 5,
                     modifier = Modifier.fillMaxWidth()
                 )
-            },
-            confirmButton = {
-                Button(onClick = {
-                    if (jsonInput.isNotBlank()) {
-                        onImportRawJsonText(jsonInput)
-                        showPasteMigrationDialog = false
-                    }
-                }) { Text("Migrate Safely") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPasteMigrationDialog = false }) { Text("Cancel") }
             }
-        )
+        }
     }
 }
 

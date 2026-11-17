@@ -25,7 +25,6 @@ import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Sms
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.desicalc.security.configureAppCheck
 import com.example.desicalc.ui.components.AnimatedSplashOverlay
+import com.example.desicalc.ui.components.DesiModalDialog
 import com.example.desicalc.ui.screens.AiAssistantScreen
 import com.example.desicalc.ui.screens.CalculatorScreen
 import com.example.desicalc.ui.screens.CustomersAndLedgerScreen
@@ -342,17 +342,18 @@ fun DesiCalculatorAppRoot(viewModel: DesiViewModel) {
 
             // Duplicate Transaction Safety Dialog
             duplicateWarning?.let { dup ->
-                AlertDialog(
+                DesiModalDialog(
                     onDismissRequest = viewModel::dismissDuplicatePrompt,
-                    title = { Text("Possible Duplicate Entry") },
-                    text = { Text(dup.duplicateReason ?: "A matching transaction was recorded recently. Save anyway?") },
+                    title = "Possible Duplicate Entry",
                     confirmButton = {
                         Button(onClick = viewModel::confirmDuplicatePromptSave) { Text("Save Anyway") }
                     },
                     dismissButton = {
                         TextButton(onClick = viewModel::dismissDuplicatePrompt) { Text("Cancel") }
                     }
-                )
+                ) {
+                    Text(dup.duplicateReason ?: "A matching transaction was recorded recently. Save anyway?")
+                }
             }
 
             AnimatedSplashOverlay(

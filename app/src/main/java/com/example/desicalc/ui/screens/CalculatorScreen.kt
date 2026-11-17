@@ -63,6 +63,7 @@ import com.example.desicalc.model.formatInr
 import com.example.desicalc.ui.components.DesiCard
 import com.example.desicalc.ui.theme.LocalDesiColors
 import com.example.desicalc.ui.theme.MonoFontFamily
+import java.util.Locale
 
 @Composable
 fun CalculatorScreen(
@@ -487,7 +488,7 @@ private fun DiscountCalculatorCard(onSave: (String, String, String, String) -> U
                     modifier = Modifier.weight(1f)
                 )
             }
-            Text("You Save: ${formatInr(res.totalDiscountAmount)} (${String.format("%.1f", res.effectiveDiscountPercent)}%)", fontFamily = MonoFontFamily)
+            Text("You Save: ${formatInr(res.totalDiscountAmount)} (${String.format(Locale.ROOT, "%.1f", res.effectiveDiscountPercent)}%)", fontFamily = MonoFontFamily)
             Text(
                 "Final Price: ${formatInr(res.finalPrice)}",
                 style = MaterialTheme.typography.titleLarge.copy(fontFamily = MonoFontFamily, fontWeight = FontWeight.Bold),
@@ -605,18 +606,18 @@ private fun ProfitLossCalculatorCard(onSave: (String, String, String, String) ->
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
-                text = "${if (res.isProfit) "Net Profit" else "Net Loss"}: ${formatInr(kotlin.math.abs(res.profitOrLoss))} (${String.format("%.1f", kotlin.math.abs(res.profitPercentOnCost))}%)",
+                text = "${if (res.isProfit) "Net Profit" else "Net Loss"}: ${formatInr(kotlin.math.abs(res.profitOrLoss))} (${String.format(Locale.ROOT, "%.1f", kotlin.math.abs(res.profitPercentOnCost))}%)",
                 style = MaterialTheme.typography.titleLarge.copy(fontFamily = MonoFontFamily, fontWeight = FontWeight.Bold),
                 color = if (res.isProfit) ext.jamaGreen else ext.udharRed
             )
-            Text("Margin on Sale: ${String.format("%.1f", res.marginPercentOnSell)}%", fontFamily = MonoFontFamily)
+            Text("Margin on Sale: ${String.format(Locale.ROOT, "%.1f", res.marginPercentOnSell)}%", fontFamily = MonoFontFamily)
             Button(
                 onClick = {
                     onSave(
                         "PROFIT_LOSS",
                         "CP ₹$cpStr -> SP ₹$spStr (x$qtyStr)",
                         formatInr(res.profitOrLoss),
-                        if (res.isProfit) "Profit ${String.format("%.1f", res.profitPercentOnCost)}%" else "Loss"
+                        if (res.isProfit) "Profit ${String.format(Locale.ROOT, "%.1f", res.profitPercentOnCost)}%" else "Loss"
                     )
                 },
                 modifier = Modifier.fillMaxWidth()
